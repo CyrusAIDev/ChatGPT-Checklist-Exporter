@@ -60,6 +60,7 @@ async function googleApiFetch(
 type CreateSheetResult = {
   spreadsheetId: string
   spreadsheetUrl: string
+  firstSheetId: number
 }
 
 async function createChecklistSheet(token: string): Promise<CreateSheetResult> {
@@ -82,15 +83,23 @@ async function createChecklistSheet(token: string): Promise<CreateSheetResult> {
   const createdSheet = (await createResponse.json()) as {
     spreadsheetId?: string
     spreadsheetUrl?: string
+    sheets?: Array<{
+      properties?: {
+        sheetId?: number
+      }
+    }>
   }
 
-  if (!createdSheet.spreadsheetId || !createdSheet.spreadsheetUrl) {
+  const firstSheetId = createdSheet.sheets?.[0]?.properties?.sheetId
+
+  if (!createdSheet.spreadsheetId || !createdSheet.spreadsheetUrl || firstSheetId == null) {
     throw new Error('Google Sheets API did not return spreadsheet details.')
   }
 
   return {
     spreadsheetId: createdSheet.spreadsheetId,
-    spreadsheetUrl: createdSheet.spreadsheetUrl
+    spreadsheetUrl: createdSheet.spreadsheetUrl,
+    firstSheetId
   }
 }
 
@@ -115,6 +124,48 @@ async function writeChecklistRows(
   if (!headersResponse.ok) {
     const headerError = await headersResponse.text()
     throw new Error(`Failed to write headers: ${headerError}`)
+  }
+}
+
+async function enableDoneColumnCheckboxes(
+  token: string,
+  spreadsheetId: string,
+  sheetId: number,
+  taskCount: number
+): Promise<void> {
+  if (taskCount <= 0) return
+
+  const checkboxResponse = await googleApiFetch(
+    token,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        requests: [
+          {
+            setDataValidation: {
+              range: {
+                sheetId,
+                startRowIndex: 1,
+                endRowIndex: taskCount + 1,
+                startColumnIndex: 1,
+                endColumnIndex: 2
+              },
+              rule: {
+                condition: { type: 'BOOLEAN' },
+                strict: true,
+                showCustomUi: true
+              }
+            }
+          }
+        ]
+      })
+    }
+  )
+
+  if (!checkboxResponse.ok) {
+    const checkboxError = await checkboxResponse.text()
+    throw new Error(`Failed to enable checkboxes: ${checkboxError}`)
   }
 }
 
@@ -387,8 +438,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
 
         const token = await getAuthTokenInteractive(scopes)
-        const { spreadsheetId, spreadsheetUrl } = await createChecklistSheet(token)
+        const { spreadsheetId, spreadsheetUrl, firstSheetId } = await createChecklistSheet(token)
         await writeChecklistRows(token, spreadsheetId, tasks)
+        await enableDoneColumnCheckboxes(token, spreadsheetId, firstSheetId, tasks.length)
         await chrome.tabs.create({ url: spreadsheetUrl })
 
         sendResponse({
