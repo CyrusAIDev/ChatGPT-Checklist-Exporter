@@ -8,9 +8,9 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
 
   const manifest: Manifest.WebExtensionManifest = {
     manifest_version: 3,
-    name: pkg.displayName || pkg.name,
+    name: 'ChatGPT Checklist Exporter',
     version: pkg.version,
-    description: pkg.description,
+    description: 'Turn ChatGPT plans into a Google Sheets checklist.',
     action: {
       default_icon: './assets/icon-512.png',
       default_popup: './popup/index.html'
@@ -24,7 +24,7 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
     },
     content_scripts: [
       {
-        matches: ['http://*/*', 'https://*/*'],
+        matches: ['https://chatgpt.com/*'],
         js: ['./content/index.global.js']
       }
     ],
@@ -33,9 +33,19 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
       48: './assets/icon-512.png',
       128: './assets/icon-512.png'
     },
-    permissions: ['contextMenus', 'storage'],
-    optional_permissions: ['*://*/*'],
-    content_security_policy: {}
+    permissions: ['storage', 'identity', 'scripting'],
+    host_permissions: [
+      'https://chatgpt.com/*',
+      'https://sheets.googleapis.com/*'
+    ],
+    oauth2: {
+      client_id:
+        '361235602045-fmp9tt7qa980m7eo0taotb8ql40dgplq.apps.googleusercontent.com',
+      scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    },
+    content_security_policy: {
+      extension_pages: "script-src 'self'; object-src 'self'"
+    }
   }
 
   if (IS_DEV) {
