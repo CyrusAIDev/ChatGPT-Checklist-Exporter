@@ -201,6 +201,20 @@ function sanitizeTaskCandidates(lines: string[]): string[] {
     .filter((line) => line.length > 0)
 }
 
+function dedupeTasksPreserveOrder(tasks: string[]): string[] {
+  const seen = new Set<string>()
+  const uniqueTasks: string[] = []
+
+  for (const task of tasks) {
+    const key = task.trim().replace(/\s+/g, ' ').toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    uniqueTasks.push(task)
+  }
+
+  return uniqueTasks
+}
+
 function getActiveTab(): Promise<chrome.tabs.Tab | undefined> {
   return new Promise((resolve) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -426,7 +440,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         const latestAssistantMessageText = extraction.text
         const structuredCandidates = sanitizeTaskCandidates(extraction.taskCandidates)
         const regexCandidates = parseChecklistTasks(latestAssistantMessageText)
-        const tasks = structuredCandidates.length > 0 ? structuredCandidates : regexCandidates
+        const rawTasks = structuredCandidates.length > 0 ? structuredCandidates : regexCandidates
+        const tasks = dedupeTasksPreserveOrder(rawTasks)
         if (tasks.length === 0) {
           const previewCandidates = sanitizeTaskCandidates(
             latestAssistantMessageText.split('\n')
