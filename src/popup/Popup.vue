@@ -81,6 +81,7 @@ type CreateChecklistSheetResponse = {
   ok: boolean
   url?: string
   taskCount?: number
+  parsedTaskCount?: number
   error?: string
 }
 
@@ -208,7 +209,13 @@ function exportLastAnswerToSheet() {
       }
 
       if (response.ok && response.url) {
-        authResult.value = `Success: Exported ${response.taskCount || 0} tasks to sheet.`
+        const exportedTaskCount = response.taskCount || 0
+        const parsedTaskCount = response.parsedTaskCount || exportedTaskCount
+
+        authResult.value =
+          parsedTaskCount > exportedTaskCount
+            ? `Success: Exported ${exportedTaskCount} unique tasks (from ${parsedTaskCount} parsed).`
+            : `Success: Exported ${exportedTaskCount} tasks to sheet.`
         return
       }
 

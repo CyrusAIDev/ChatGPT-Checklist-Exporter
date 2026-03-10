@@ -461,7 +461,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({
           ok: true,
           url: spreadsheetUrl,
-          taskCount: tasks.length
+          taskCount: tasks.length,
+          parsedTaskCount: rawTasks.length
         })
       } catch (error) {
         const errorMessage = stringifyErrorMessage(error)
