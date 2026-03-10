@@ -169,6 +169,49 @@ async function enableDoneColumnCheckboxes(
   }
 }
 
+async function enableDoneColumnCheckboxesRange(
+  token: string,
+  spreadsheetId: string,
+  sheetId: number,
+  startRowIndex: number,
+  endRowIndex: number
+): Promise<void> {
+  if (endRowIndex <= startRowIndex) return
+
+  const checkboxResponse = await googleApiFetch(
+    token,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        requests: [
+          {
+            setDataValidation: {
+              range: {
+                sheetId,
+                startRowIndex,
+                endRowIndex,
+                startColumnIndex: 1,
+                endColumnIndex: 2
+              },
+              rule: {
+                condition: { type: 'BOOLEAN' },
+                strict: true,
+                showCustomUi: true
+              }
+            }
+          }
+        ]
+      })
+    }
+  )
+
+  if (!checkboxResponse.ok) {
+    const checkboxError = await checkboxResponse.text()
+    throw new Error(`Failed to enable checkbox range: ${checkboxError}`)
+  }
+}
+
 function parseChecklistTasks(text: string): string[] {
   const lines = text.split('\n')
   const tasks: string[] = []
@@ -400,7 +443,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     void (async () => {
       try {
         const token = await getAuthTokenInteractive(scopes)
-        const { spreadsheetUrl } = await createChecklistSheet(token)
+        const { spreadsheetId, spreadsheetUrl, firstSheetId } = await createChecklistSheet(token)
+        await writeChecklistRows(token, spreadsheetId, [])
+        // Preconfigure a reasonable starter range so newly entered rows use checkboxes.
+        await enableDoneColumnCheckboxesRange(token, spreadsheetId, firstSheetId, 1, 201)
         await chrome.tabs.create({ url: spreadsheetUrl })
         // eslint-disable-next-line no-console
         console.log('[sheets] Checklist sheet created successfully', { spreadsheetUrl })
