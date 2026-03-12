@@ -1,10 +1,10 @@
 # Progress
 
-**Overall:** ~35% `█████░░░░░`
+**Overall:** ~45% `██████░░░░`
 
-**Current Phase:** Phase 5 — Merge and Archive
+**Current Phase:** Phase 6 — Reset and Error States
 
-**Current Focus:** merge engine, exact + fuzzy match, archive unmatched, unit tests, merge summary
+**Current Focus:** destructive reset confirmation, error states, archived section polish
 
 ## Phase Checklist
 
@@ -13,7 +13,7 @@
 - [x] Phase 2 — ChatGPT Detection and Extraction
 - [x] Phase 3 — Parse and Create Checklist
 - [x] Phase 4 — Local State and Toggle Persistence
-- [ ] Phase 5 — Merge and Archive
+- [x] Phase 5 — Merge and Archive
 - [ ] Phase 6 — Reset and Error States
 - [ ] Phase 7 — Final QA and Package
 
@@ -24,6 +24,7 @@
 - **Phase 2:** Content script extracts conversationId from /c/:id, latest assistant message from DOM. Message contract: side panel → background `GET_PAGE_STATE_FOR_ACTIVE_TAB`; background → content script `GET_PAGE_STATE`; content script responds on demand. No background cache. (Bug fix: `tabs` permission added for active-tab resolution.)
 - **Phase 3:** Normalization (normalize-item.ts), DOM-first + text fallback parser (parse-checklist.ts), dedupe by normalized text. createChecklistRecord, parseLatestMessage. checklist-repo get/set. Side panel: Create checklist button, checklist list display, no-list error state. Unit tests: normalize-item.test.ts, parse-checklist.test.ts (17 tests).
 - **Phase 4:** storage-guards.ts validates stored records; getChecklist uses it (invalid data returns null). Toggle: checkbox per item, handleToggle updates record and setChecklist immediately. Checklist loads on panel open; state survives reload. Unit test: storage-guards.test.ts.
+- **Phase 5:** Merge engine in lib/merge/ (fuzzy-match.ts token overlap, merge-checklist.ts). Exact match first, conservative fuzzy (≥0.85, margin 0.10); ambiguous = new item; unmatched old active → archived; sourceFingerprint no-op; Merge latest button + summary (matched, added, archived); archived section collapsed by default. Unit tests: fuzzy-match.test.ts, merge-checklist.test.ts.
 
 ## In Progress
 
@@ -31,11 +32,15 @@
 
 ## Next
 
-- Phase 5: merge preserves checked state; removed items archived; same source not re-merged.
+- Phase 6: reset with confirmation; error states; archived section polish.
 
 ## Phase 3 — Parser Coverage
 
 - Bullets (-, *, •), numbered (1., 1)), markdown checkboxes ([ ], [x]). Line-based + DOM candidates. Dedupe by normalized text.
+
+## Phase 5 — Merge Notes
+
+- Fuzzy: token overlap score ≥ 0.85, best beats second by ≥ 0.10. No semantic/AI matching.
 
 ## Phase 2 — Extraction Notes
 

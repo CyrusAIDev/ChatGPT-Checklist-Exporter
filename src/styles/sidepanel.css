@@ -66,3 +66,43 @@
   font-size: 0.875rem;
   word-wrap: break-word;
 }
+
+.sidepanel .header-actions {
+  margin-bottom: 0.5rem;
+}
+
+.sidepanel .header-actions button {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.sidepanel .merge-summary {
+  font-size: 0.75rem;
+  color: #666;
+  margin: 0 0 0.5rem 0;
+}
+
+.sidepanel .archived-section {
+  margin-top: 0.75rem;
+  border-top: 1px solid #eee;
+  padding-top: 0.5rem;
+}
+
+.sidepanel .archived-toggle {
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  font-size: 0.8rem;
+  color: #888;
+  cursor: pointer;
+}
+
+.sidepanel .archived-list {
+  margin-top: 0.25rem;
+}
+
+.sidepanel .item-archived {
+  color: #999;
+  text-decoration: line-through;
+}

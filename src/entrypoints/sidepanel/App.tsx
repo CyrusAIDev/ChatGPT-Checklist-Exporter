@@ -3,6 +3,8 @@ import type { ChecklistRecord } from '../../types/checklist'
 import type { PageStatePayload } from '../../types/messages'
 import { getChecklist, setChecklist } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
+import { mergeChecklist } from '../../lib/merge/merge-checklist'
+import type { MergeSummary } from '../../lib/merge/merge-checklist'
 
 type PageStateStatus = PageStatePayload | null | 'loading'
 type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
@@ -16,6 +18,8 @@ function App() {
   const [checklist, setChecklistState] = useState<ChecklistRecord | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mergeSummary, setMergeSummary] = useState<MergeSummary | null>(null)
+  const [archivedCollapsed, setArchivedCollapsed] = useState(true)
 
   useEffect(() => {
     setPageState('loading')
@@ -75,6 +79,32 @@ function App() {
       setChecklistState(record)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create checklist.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleMergeLatest = async () => {
+    if (!pageState || pageState === 'loading' || !pageState.supported || !pageState.conversationId || !checklist) return
+    setBusy(true)
+    setError(null)
+    setMergeSummary(null)
+    try {
+      const parsed = parseLatestMessage(pageState)
+      if (parsed.length === 0) {
+        setError('No list items found in the latest message.')
+        return
+      }
+      const result = mergeChecklist(checklist, parsed)
+      if (result === null) {
+        setError('Already up to date.')
+        return
+      }
+      await setChecklist(result.record)
+      setChecklistState(result.record)
+      setMergeSummary(result.summary)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Merge failed.')
     } finally {
       setBusy(false)
     }
@@ -142,6 +172,7 @@ function App() {
   }
 
   const activeItems = checklist?.items.filter((i) => !i.archived).sort((a, b) => a.order - b.order) ?? []
+  const archivedItems = checklist?.items.filter((i) => i.archived).sort((a, b) => a.order - b.order) ?? []
 
   return (
     <div className="sidepanel">
@@ -156,6 +187,16 @@ function App() {
         </div>
       ) : (
         <div className="checklist-view">
+          <div className="header-actions">
+            <button type="button" onClick={handleMergeLatest} disabled={busy}>
+              {busy ? 'Merging…' : 'Merge latest'}
+            </button>
+          </div>
+          {mergeSummary && (
+            <p className="merge-summary">
+              Matched: {mergeSummary.matched}, added: {mergeSummary.added}, archived: {mergeSummary.archived}
+            </p>
+          )}
           <ul className="checklist-list">
             {activeItems.map((item) => (
               <li key={item.id} className="checklist-item">
@@ -170,6 +211,27 @@ function App() {
               </li>
             ))}
           </ul>
+          {archivedItems.length > 0 && (
+            <div className="archived-section">
+              <button
+                type="button"
+                className="archived-toggle"
+                onClick={() => setArchivedCollapsed(!archivedCollapsed)}
+                aria-expanded={!archivedCollapsed}
+              >
+                {archivedCollapsed ? '▼' : '▲'} Archived ({archivedItems.length})
+              </button>
+              {!archivedCollapsed && (
+                <ul className="checklist-list archived-list">
+                  {archivedItems.map((item) => (
+                    <li key={item.id} className="checklist-item archived-item">
+                      <span className="item-text item-archived">{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

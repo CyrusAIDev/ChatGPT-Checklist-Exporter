@@ -90,7 +90,7 @@ Use this MVP manifest shape:
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "sidePanel"],
+  "permissions": ["storage", "sidePanel", "tabs"],
   "host_permissions": ["https://chatgpt.com/*"],
   "content_scripts": [
     {
@@ -105,7 +105,7 @@ Use this MVP manifest shape:
 }
 Rules:
 
-Do not add activeTab, tabs, scripting, or identity.
+Do not add activeTab, scripting, or identity. (Exception: tabs is allowed when required for active-tab page-state messaging.)
 
 Do not add any Google API host permissions.
 
