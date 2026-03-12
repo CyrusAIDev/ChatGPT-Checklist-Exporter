@@ -1,173 +1,178 @@
-# ChatGPT Checklist Exporter
+# Product Summary
 
-## Product Summary
-A Chrome extension that turns useful plans from ChatGPT into a simple Google Sheets checklist so the user can track progress outside the chat.
+Living Checklist for ChatGPT with Merge is a Chrome extension for `chatgpt.com` that turns the latest structured assistant output into one canonical checklist per conversation, preserves checked state locally, and merges later revised versions without wiping progress.
 
-## Problem
-ChatGPT creates useful plans, but they are hard to execute from inside the chat. Users lose progress, forget steps, and do not have a persistent checklist they can work from.
+# Target User
 
-## Solution
-A lightweight Chrome extension that reads the current ChatGPT conversation, extracts task lines from the latest assistant answer, and creates a Google Sheet checklist with basic tracking columns.
+A solo ChatGPT-heavy operator who uses one conversation to create and revise a plan, then needs a stable checklist to execute against.
 
-## Target User
-A solo user who uses ChatGPT to plan work and wants a fast way to turn those plans into an actionable checklist.
+# Core Problem
 
-## Main Use Case
-1. User asks ChatGPT for a step-by-step plan.
-2. User clicks the extension.
-3. Extension exports the latest useful answer into a Google Sheet.
-4. User checks items off in Google Sheets while working.
+ChatGPT rewrites plans as the conversation evolves. Users either work from scrollback and lose state, or copy the plan somewhere else and break the link to the conversation. Each revision forces manual comparison and re-checking.
 
-## MVP Goal
-Create the smallest useful version that works reliably for personal use.
+# Product Promise
 
-## MVP Features
-- Test Google login
-- Create empty checklist sheet
-- Export latest ChatGPT assistant answer to a new Google Sheet
-- Parse simple checklist lines:
-  - bullets
-  - numbered steps
-- Write rows:
-  - Task
-  - Done
-  - Notes
-- Open the Sheet automatically
+One conversation gets one living checklist. Progress survives reloads. Revisions merge without resetting completed work.
 
-## Non-Goals
-- No backend
-- No database
-- No team features
-- No multi-thread sync
-- No version history
-- No update or merge into an existing sheet
-- No Docs export
-- No fancy UI
+# MVP Scope
 
-## Success Criteria
-- User can go from ChatGPT answer to usable Google Sheet in under 10 seconds
-- Export works reliably on chatgpt.com
-- User personally uses it multiple times in one week
+- Chrome extension only
+- `chatgpt.com` only
+- one side panel UI
+- one canonical checklist per conversation
+- create checklist from the latest assistant message only
+- parse bullets, numbered items, and markdown checkboxes only
+- check and uncheck items
+- merge a later revision into the same checklist
+- archive removed items instead of deleting them
+- destructive reset for the current conversation only
+- local-first with `chrome.storage.local`
 
-## Technical Constraints
-- Chrome Extension Manifest V3
-- Google OAuth via `chrome.identity`
-- Google Sheets API only
-- No server or backend
-- All auth handled in extension
-- Scope limited to spreadsheets
-- Site limited to `chatgpt.com`
+# User Flow
 
-## Current Architecture
-- Popup UI
-- Background service worker
-- Content script
-- Google OAuth
-- Google Sheets API calls from background
-- Content extraction from current ChatGPT tab
+1. User opens a saved ChatGPT conversation.
+2. User opens the extension side panel.
+3. User clicks **Create checklist**.
+4. The extension parses the latest assistant message and stores one checklist for that conversation.
+5. User checks items while working.
+6. ChatGPT later outputs a revised plan in the same conversation.
+7. User clicks **Merge latest**.
+8. The extension preserves matched checked items, adds new items, archives removed items, and updates order to match the latest plan.
+9. If needed, user clicks **Reset checklist**, confirms, and wipes the checklist for that conversation.
 
-## Current Buttons
-- Test Google Login
-- Create Empty Checklist Sheet
-- Export Last Answer to Sheet
+# Functional Requirements
 
-## Parsing Rules
-For now, only parse lines that start with:
-- `-`
-- `*`
-- `1.`
-- `2.`
-- `3.`
+- Derive one stable checklist record per ChatGPT conversation.
+- Refuse checklist creation when the page is not a saved conversation.
+- Read only the latest assistant message in MVP.
+- Parse DOM list items first; fall back to line-based parsing.
+- Support `-`, `*`, `•`, `1.`, `1)`, `[ ]`, and `[x]`.
+- On first capture, initialize checked state from source markdown checkboxes if present; otherwise unchecked.
+- Persist checkbox toggles immediately to local storage.
+- Merge only when the user explicitly clicks **Merge latest**.
+- After merge, active item order follows the latest source order.
+- Removed items move to **Archived**.
+- Archived items are collapsed by default.
+- Reset requires confirmation and clearly states that it deletes the checklist for the current conversation.
+- Show clear states for unsupported page, no checklist found, extraction failure, and already up to date.
 
-Keep parsing simple and reliable.
+# Non-Goals
 
-## Output Format
-Create a new Google Sheet titled:
+- no Google OAuth
+- no Google Sheets export
+- no popup workflow
+- no options page
+- no cloud sync
+- no backend
+- no remote APIs
+- no integrations
+- no manual add/edit/reorder/delete UI
+- no due dates, priorities, reminders, recurring tasks, calendars, Kanban, or notifications
+- no multiple checklists per conversation
+- no multi-site support
+- no workspace or project management features
+- no payments in MVP
 
-`ChatGPT Checklist`
+# UX Requirements
 
-Use these columns:
-- Task
-- Done
-- Notes
+- Side panel is the only user-facing surface.
+- Extension action opens the side panel directly.
+- Empty state has one primary action: **Create checklist**.
+- When a checklist exists, the primary actions are **Merge latest** and **Reset checklist**.
+- Checklist UI must be plain, fast, and quiet.
+- Item text wraps cleanly.
+- Archived items are collapsed by default.
+- Reset is visually dangerous and clearly destructive.
+- No onboarding tour, settings surface, debug UI, or wizard.
 
-## Next Priorities
-1. Make export reliably pull the latest assistant answer
-2. Improve task parsing
-3. Add better errors
-4. Later: update an existing sheet instead of always creating a new one
+# Technical Constraints
 
-## Product Principle
-This tool is not for storing chats.  
-It is for turning AI plans into execution checklists quickly.
+- Chrome Manifest V3 only.
+- Permissions limited to `storage` and `sidePanel`.
+- Host permissions limited to `https://chatgpt.com/*`.
+- One content script for ChatGPT DOM extraction.
+- One minimal background/service worker.
+- One side panel app.
+- Local-first with `chrome.storage.local`.
+- No network requests in MVP.
+- No OAuth, backend, export, popup, or options page.
 
----
+# Merge Behavior
 
-# Build Rules for Cursor
-- Stay focused on the smallest useful version
-- Do not add unnecessary features
-- Do not introduce a backend unless explicitly requested
-- Prefer the simplest working implementation
-- Keep the extension focused on exporting useful task lists from ChatGPT
-- Keep code readable and easy to debug
-- Keep user-facing steps simple and easy to follow
-- When giving instructions, always give step-by-step actions in plain English
-- If testing is needed, explain exactly what to click, what to expect, and what success looks like
-- If something breaks, explain the likely cause and the smallest fix first
-- Do not drift into unrelated features
+- exact normalized match first
+- conservative fuzzy match for minor wording changes
+- if ambiguous, treat as a new item
+- never auto-uncheck a matched item
+- unmatched old items become archived
 
----
+# Storage Model
 
-# Recursive Working Style
-When working on this project:
-1. Focus on one small task at a time
-2. Implement only that task
-3. Stop and report:
-   - what changed
-   - what files changed
-   - what command to run
-   - what to click to test
-   - what success looks like
-4. Then wait for the next instruction
+Store one record per conversation under:
 
-If a task is too big, break it into smaller steps and do the first useful one.
+`checklist:{conversationId}`
 
----
+```ts
+export type ChecklistRecord = {
+  version: 1
+  conversationId: string
+  sourceFingerprint: string | null
+  updatedAt: number
+  items: ChecklistItem[]
+}
 
-# Execution Style
-For every task:
-- Give easy step-by-step instructions
-- Keep explanations short
-- Prefer practical actions over theory
-- Optimize for speed, clarity, and usefulness
-- Avoid fluff
-- Avoid hallucinating features that do not exist
-- Stay aligned with this file
+export type ChecklistItem = {
+  id: string
+  text: string
+  checked: boolean
+  archived: boolean
+  order: number
+}
+```
 
----
+# Rules
 
-# Current Main Task
-Make `Export Last Answer to Sheet` work reliably on `chatgpt.com` and create a usable Google Sheet checklist from the latest assistant response.
+sourceFingerprint prevents re-merging the same source twice.
 
-## Definition of Done
-- User opens a ChatGPT thread
-- User clicks `Export Last Answer to Sheet`
-- Extension reads the latest assistant answer
-- Extension extracts simple task lines
-- Extension creates a Google Sheet
-- Extension writes:
-  - Task
-  - Done
-  - Notes
-- Extension opens the new sheet automatically
-- Errors are readable and easy to debug
+items contains both active and archived items.
 
----
+Active items sort by order.
 
-# How Cursor Should Respond
-When asked to work on this project:
-1. Read this file first
-2. Stay within the MVP scope
-3. Make the smallest useful change
-4. Give short step-by-step testing instructions
-5. Keep the project moving forward without overcomplicating it
+# Edge Cases
+
+User is on chatgpt.com but not inside a saved conversation URL.
+
+Latest assistant message contains no parseable checklist.
+
+Same item appears twice in one source capture.
+
+A revision rewrites items so heavily that matching is ambiguous.
+
+ChatGPT DOM changes and extraction fails.
+
+User merges the same latest assistant message twice.
+
+Stored data is corrupted or missing required fields.
+
+# Acceptance Criteria
+
+The extension works only on saved chatgpt.com conversations.
+
+Create checklist builds one checklist from the latest assistant message.
+
+Checked state survives reloads, browser restart, and returning to the same conversation.
+
+Merge latest preserves checked state for exact matches and conservative fuzzy matches.
+
+Ambiguous changes create new items instead of risky matches.
+
+Removed items move to Archived.
+
+Reset checklist requires confirmation and deletes only the current conversation checklist.
+
+No login prompt, OAuth flow, backend call, or third-party API call exists anywhere in MVP.
+
+Requested permissions stay minimal.
+
+# Final Constraint Reminder
+
+This product is one living checklist per ChatGPT conversation with manual merge of later revisions. Chrome only. chatgpt.com only. Side panel only. Local-first. No OAuth. No export in MVP. No integrations. No team features. No manual task editing. No task-manager sprawl.
