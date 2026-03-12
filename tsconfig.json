@@ -1,25 +1,21 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "target": "ESNext",
     "module": "ESNext",
-    "target": "es2016",
-    "lib": ["DOM", "ESNext"],
+    "moduleResolution": "bundler",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "jsx": "react-jsx",
     "strict": true,
-    "esModuleInterop": true,
-    "incremental": false,
+    "noEmit": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
     "resolveJsonModule": true,
+    "isolatedModules": true,
     "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "vite/client",
-      "chrome"
-    ],
-    "paths": {
-      "~/*": ["src/*"]
-    }
+    "types": ["chrome", "node"]
   },
-  "exclude": ["dist", "node_modules"]
+  "include": ["src", "wxt.config.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", ".output", ".wxt"]
 }

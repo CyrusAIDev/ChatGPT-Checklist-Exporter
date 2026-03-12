@@ -1,0 +1,68 @@
+.sidepanel {
+  padding: 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.sidepanel h1 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.sidepanel p.state-unsupported,
+.sidepanel p.state-no-content,
+.sidepanel p.state-hint {
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.sidepanel p.state-hint {
+  margin-top: 0.5rem;
+}
+
+.sidepanel .state-error {
+  color: #c00;
+  font-size: 0.875rem;
+}
+
+.sidepanel .state-empty p {
+  margin-bottom: 0.5rem;
+}
+
+.sidepanel .state-empty button {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.sidepanel .checklist-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidepanel .checklist-item {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.sidepanel .checklist-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sidepanel .checklist-item-row input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.sidepanel .item-checked {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.sidepanel .item-text {
+  font-size: 0.875rem;
+  word-wrap: break-word;
+}
