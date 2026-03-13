@@ -1,8 +1,23 @@
-.DS_Store
-*.local
+# Dependencies and build
 node_modules
-.idea/
-*.log
 .output
 .wxt
+
+# Extension output (WXT dev/prod)
 extension
+extension/dev
+extension/prod
+
+# Logs and temp
+*.log
+*.tmp
+*.temp
+.DS_Store
+*.local
+.idea/
+
+# Lockfile backups (keep pnpm-lock.yaml in repo)
+pnpm-lock.yaml.bak
+package-lock.json.bak
+yarn.lock.bak
+*.bak

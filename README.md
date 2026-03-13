@@ -105,6 +105,20 @@ pnpm build
 
 And then pack files under `extension`.
 
+## Development safety and checkpoints
+
+After every major change or phase completion:
+
+1. Update `progress.md` with what was done.
+2. Create a checkpoint commit:
+
+   ```bash
+   git add -A
+   git commit -m "Agent checkpoint: <short description>"
+   ```
+
+This keeps work versioned and recoverable. Do not skip checkpoints after completing a build phase or a significant fix.
+
 ## Credits
 
 This is a template derive from [antfu/vitesse-webext](https://github.com/antfu/vitesse-webext)
