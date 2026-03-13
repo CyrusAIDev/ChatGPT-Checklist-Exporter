@@ -1,37 +1,134 @@
 .sidepanel {
-  padding: 1rem;
-  font-family: system-ui, sans-serif;
+  padding: 1.25rem 1rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1a1a1a;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.sidepanel-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .sidepanel h1 {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  margin: 0 0 0.5rem 0;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sidepanel p.state-loading {
+  color: #666;
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 .sidepanel p.state-unsupported,
-.sidepanel p.state-no-content,
-.sidepanel p.state-hint {
-  color: #888;
+.sidepanel p.state-no-content {
+  color: #555;
   font-size: 0.875rem;
-}
-
-.sidepanel p.state-hint {
-  margin-top: 0.5rem;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .sidepanel .state-error {
-  color: #c00;
+  color: #b91c1c;
   font-size: 0.875rem;
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.6rem;
+  background: #fef2f2;
+  border-radius: 4px;
+}
+
+.sidepanel .state-info {
+  color: #4b5563;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.6rem;
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.sidepanel .state-empty {
+  margin-top: 0.25rem;
 }
 
 .sidepanel .state-empty p {
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.75rem 0;
+  color: #444;
+  font-size: 0.875rem;
 }
 
-.sidepanel .state-empty button {
-  padding: 0.4rem 0.75rem;
+.sidepanel .btn-primary {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
+}
+
+.sidepanel .btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.sidepanel .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sidepanel .btn-secondary {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidepanel .btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.sidepanel .btn-destructive {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #b91c1c;
+  background: #fff;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidepanel .btn-destructive:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #b91c1c;
+}
+
+.sidepanel .btn-destructive:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sidepanel .checklist-view {
+  margin-top: 0.25rem;
+}
+
+.sidepanel .header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .sidepanel .checklist-list {
@@ -41,8 +138,12 @@
 }
 
 .sidepanel .checklist-item {
-  padding: 0.35rem 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid #eee;
+}
+
+.sidepanel .checklist-item:last-child {
+  border-bottom: none;
 }
 
 .sidepanel .checklist-item-row {
@@ -55,54 +156,105 @@
 .sidepanel .checklist-item-row input {
   margin-top: 0.2rem;
   flex-shrink: 0;
-}
-
-.sidepanel .item-checked {
-  text-decoration: line-through;
-  color: #888;
+  accent-color: #2563eb;
 }
 
 .sidepanel .item-text {
   font-size: 0.875rem;
   word-wrap: break-word;
+  line-height: 1.4;
 }
 
-.sidepanel .header-actions {
-  margin-bottom: 0.5rem;
-}
-
-.sidepanel .header-actions button {
-  padding: 0.35rem 0.6rem;
-  font-size: 0.875rem;
-  cursor: pointer;
+.sidepanel .item-checked {
+  text-decoration: line-through;
+  color: #6b7280;
 }
 
 .sidepanel .merge-summary {
-  font-size: 0.75rem;
-  color: #666;
+  font-size: 0.8125rem;
+  color: #6b7280;
   margin: 0 0 0.5rem 0;
 }
 
 .sidepanel .archived-section {
-  margin-top: 0.75rem;
-  border-top: 1px solid #eee;
-  padding-top: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e5e5;
 }
 
 .sidepanel .archived-toggle {
   background: none;
   border: none;
   padding: 0.25rem 0;
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 0.8125rem;
+  color: #6b7280;
   cursor: pointer;
 }
 
+.sidepanel .archived-toggle:hover {
+  color: #4b5563;
+}
+
 .sidepanel .archived-list {
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.sidepanel .archived-item {
+  padding: 0.35rem 0;
 }
 
 .sidepanel .item-archived {
-  color: #999;
+  color: #9ca3af;
+  font-size: 0.8125rem;
   text-decoration: line-through;
+}
+
+.sidepanel .reset-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 1rem;
+}
+
+.sidepanel .reset-dialog {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.25rem;
+  max-width: 280px;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sidepanel .reset-dialog-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.sidepanel .reset-dialog-body {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.sidepanel .reset-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.sidepanel .reset-dialog-actions .btn-destructive {
+  color: #fff;
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.sidepanel .reset-dialog-actions .btn-destructive:hover {
+  background: #991b1b;
+  border-color: #991b1b;
 }

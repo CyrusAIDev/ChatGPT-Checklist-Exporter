@@ -1,10 +1,10 @@
 # Progress
 
-**Overall:** ~45% `██████░░░░`
+**Overall:** ~85% `████████░░`
 
-**Current Phase:** Phase 6 — Reset and Error States
+**Current Phase:** Phase 7 — Final QA and Package
 
-**Current Focus:** destructive reset confirmation, error states, archived section polish
+**Current Focus:** final QA, manifest audit, production build
 
 ## Phase Checklist
 
@@ -14,7 +14,7 @@
 - [x] Phase 3 — Parse and Create Checklist
 - [x] Phase 4 — Local State and Toggle Persistence
 - [x] Phase 5 — Merge and Archive
-- [ ] Phase 6 — Reset and Error States
+- [x] Phase 6 — Reset and Error States
 - [ ] Phase 7 — Final QA and Package
 
 ## Completed
@@ -25,6 +25,7 @@
 - **Phase 3:** Normalization (normalize-item.ts), DOM-first + text fallback parser (parse-checklist.ts), dedupe by normalized text. createChecklistRecord, parseLatestMessage. checklist-repo get/set. Side panel: Create checklist button, checklist list display, no-list error state. Unit tests: normalize-item.test.ts, parse-checklist.test.ts (17 tests).
 - **Phase 4:** storage-guards.ts validates stored records; getChecklist uses it (invalid data returns null). Toggle: checkbox per item, handleToggle updates record and setChecklist immediately. Checklist loads on panel open; state survives reload. Unit test: storage-guards.test.ts.
 - **Phase 5:** Merge engine in lib/merge/ (fuzzy-match.ts token overlap, merge-checklist.ts). Exact match first, conservative fuzzy (≥0.85, margin 0.10); ambiguous = new item; unmatched old active → archived; sourceFingerprint no-op; Merge latest button + summary (matched, added, archived); archived section collapsed by default. Unit tests: fuzzy-match.test.ts, merge-checklist.test.ts.
+- **Phase 6:** Destructive reset with confirmation (ResetConfirmDialog, deleteChecklist in checklist-repo). Wipes only current conversation checklist. Main states clarified: unsupported page (not chatgpt / not saved conversation), no tab, extraction failure (no_response), supported but no assistant content yet, no parseable checklist (error on create/merge), already up to date (info, not error). Side panel polish: spacing, typography, primary/destructive button hierarchy, archived visually secondary and collapsed by default. One-column layout; no new scope.
 
 ## In Progress
 
@@ -32,7 +33,7 @@
 
 ## Next
 
-- Phase 6: reset with confirmation; error states; archived section polish.
+- Phase 7: final QA, manifest audit, production build.
 
 ## Phase 3 — Parser Coverage
 
@@ -45,6 +46,11 @@
 ## Phase 2 — Extraction Notes
 
 - Selectors: `[data-message-author-role="assistant"]`, `.markdown`. ChatGPT DOM may change; watch for fragility.
+
+## Bug fix — Stale page state on Merge/Create (pre-Phase 7)
+
+- **Root cause:** Create and Merge used `pageState` set only once when the panel opened. After ChatGPT produced a revised plan, the panel still had the old latest-message data, so merge compared against stale content and often returned “Already up to date.”
+- **Fix:** Added `fetchFreshPageState()` (same `GET_PAGE_STATE_FOR_ACTIVE_TAB` message). Create and Merge now request fresh page state from the active tab immediately before parsing/merging. On success, panel state is updated with the fresh payload. On failure (no_response, no_tab, not_chatgpt), error is shown and no checklist data is overwritten.
 
 ## Bug fix — Page-state loading (Phases 2–4)
 

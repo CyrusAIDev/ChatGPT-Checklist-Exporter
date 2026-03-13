@@ -13,3 +13,8 @@ export async function setChecklist(record: ChecklistRecord): Promise<void> {
   const key = checklistKey(record.conversationId)
   await chrome.storage.local.set({ [key]: record })
 }
+
+export async function deleteChecklist(conversationId: string): Promise<void> {
+  const key = checklistKey(conversationId)
+  await chrome.storage.local.remove(key)
+}
