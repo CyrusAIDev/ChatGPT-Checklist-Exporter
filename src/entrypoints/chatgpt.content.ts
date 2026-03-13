@@ -24,6 +24,7 @@ export default defineContentScript({
             supported: false,
             latestMessageText: null,
             taskCandidates: [],
+            isGenerating: false,
           })
         }
         return true

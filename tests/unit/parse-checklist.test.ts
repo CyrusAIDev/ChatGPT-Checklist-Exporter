@@ -68,6 +68,7 @@ describe('parseLatestMessage', () => {
       supported: true,
       latestMessageText: '- From text',
       taskCandidates: ['- From DOM'],
+      isGenerating: false,
     }
     const result = parseLatestMessage(payload)
     expect(result).toHaveLength(1)
@@ -80,6 +81,7 @@ describe('parseLatestMessage', () => {
       supported: true,
       latestMessageText: '- A\n- B',
       taskCandidates: [],
+      isGenerating: false,
     }
     const result = parseLatestMessage(payload)
     expect(result).toHaveLength(2)
@@ -91,6 +93,7 @@ describe('parseLatestMessage', () => {
       supported: true,
       latestMessageText: null,
       taskCandidates: [],
+      isGenerating: false,
     }
     expect(parseLatestMessage(payload)).toEqual([])
   })

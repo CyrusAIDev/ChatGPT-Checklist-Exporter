@@ -317,6 +317,8 @@ extraction failed
 
 already up to date
 
+still generating (disable create/merge, show wait message)
+
 storage failed
 
 corrupted stored data

@@ -1,10 +1,10 @@
 # Progress
 
-**Overall:** ~85% `████████░░`
+**Overall:** 100% `██████████`
 
-**Current Phase:** Phase 7 — Final QA and Package
+**Current Phase:** Complete
 
-**Current Focus:** final QA, manifest audit, production build
+**Current Focus:** —
 
 ## Phase Checklist
 
@@ -15,7 +15,7 @@
 - [x] Phase 4 — Local State and Toggle Persistence
 - [x] Phase 5 — Merge and Archive
 - [x] Phase 6 — Reset and Error States
-- [ ] Phase 7 — Final QA and Package
+- [x] Phase 7 — Final QA and Package
 
 ## Completed
 
@@ -26,6 +26,17 @@
 - **Phase 4:** storage-guards.ts validates stored records; getChecklist uses it (invalid data returns null). Toggle: checkbox per item, handleToggle updates record and setChecklist immediately. Checklist loads on panel open; state survives reload. Unit test: storage-guards.test.ts.
 - **Phase 5:** Merge engine in lib/merge/ (fuzzy-match.ts token overlap, merge-checklist.ts). Exact match first, conservative fuzzy (≥0.85, margin 0.10); ambiguous = new item; unmatched old active → archived; sourceFingerprint no-op; Merge latest button + summary (matched, added, archived); archived section collapsed by default. Unit tests: fuzzy-match.test.ts, merge-checklist.test.ts.
 - **Phase 6:** Destructive reset with confirmation (ResetConfirmDialog, deleteChecklist in checklist-repo). Wipes only current conversation checklist. Main states clarified: unsupported page (not chatgpt / not saved conversation), no tab, extraction failure (no_response), supported but no assistant content yet, no parseable checklist (error on create/merge), already up to date (info, not error). Side panel polish: spacing, typography, primary/destructive button hierarchy, archived visually secondary and collapsed by default. One-column layout; no new scope.
+- **Phase 7:** Reliability fixes (retry on no_response, Retry button; isGenerating detection). Final QA, manifest audit, production build. No new permissions. MVP complete.
+
+## Bug fix — Side panel sometimes needs reload to detect conversation (Phase 7)
+
+- **Root cause:** Single request to content script can return no_response when the content script is not yet ready (e.g. after extension reload or tab just loaded). No retry or user recovery path.
+- **Fix:** fetchPageStateWithRetry() retries up to 3 times with 400ms delay on no_response. Initial load and Create/Merge use it. no_response UI now shows a Retry button that re-runs the fetch. Message clarified: “The tab may still be loading or the extension was just reloaded.”
+
+## Bug fix — Merge latest can merge partial output while ChatGPT is still generating (Phase 7)
+
+- **Root cause:** Create/Merge used whatever was in the latest assistant message at click time; if ChatGPT was still streaming, partial content was merged.
+- **Fix:** PageStatePayload extended with isGenerating. Content script detects streaming conservatively: class containing “streaming” on/inside last assistant message, or presence of “Stop generating” button (data-testid, aria-label, or button text). When isGenerating is true: dedicated panel state “Wait until ChatGPT finishes responding before creating or merging”; Create and Merge handlers also check fresh payload and refuse to proceed, showing the same message. No overwrite of checklist when generation in progress.
 
 ## In Progress
 
@@ -33,7 +44,7 @@
 
 ## Next
 
-- Phase 7: final QA, manifest audit, production build.
+- Optional: manual QA on real ChatGPT; follow-ups in non-blocking list if any.
 
 ## Phase 3 — Parser Coverage
 

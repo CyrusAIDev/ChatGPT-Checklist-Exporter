@@ -27,6 +27,29 @@ function getLatestMessageText(messageEl: HTMLElement): string {
 }
 
 /**
+ * Detect if the latest assistant message is still streaming/generating.
+ * Conservative: only true when we see a clear streaming indicator in the DOM.
+ */
+function isLatestMessageStillGenerating(lastAssistantMessage: HTMLElement | null): boolean {
+  if (!lastAssistantMessage) return false
+  const root = lastAssistantMessage.closest('article') ?? lastAssistantMessage
+  const hasStreamingClass =
+    root.classList.toString().toLowerCase().includes('streaming') ||
+    root.querySelector('[class*="streaming"]') != null
+  if (hasStreamingClass) return true
+  const stopByTestId = document.querySelector('button[data-testid="stop-generating"]')
+  if (stopByTestId) return true
+  const stopByAria = Array.from(document.querySelectorAll('button')).some(
+    (b) => b.getAttribute('aria-label')?.toLowerCase().includes('stop'),
+  )
+  if (stopByAria) return true
+  const stopByText = Array.from(document.querySelectorAll('button')).some(
+    (b) => b.textContent?.trim().toLowerCase().includes('stop'),
+  )
+  return stopByText
+}
+
+/**
  * Extract page state: conversationId from URL, latest assistant message from DOM.
  */
 export function extractLatestAssistantMessage(): PageStatePayload {
@@ -35,6 +58,7 @@ export function extractLatestAssistantMessage(): PageStatePayload {
 
   let latestMessageText: string | null = null
   let taskCandidates: string[] = []
+  let lastAssistantEl: HTMLElement | null = null
 
   const assistantMessages = document.querySelectorAll('[data-message-author-role="assistant"]')
   for (let i = assistantMessages.length - 1; i >= 0; i--) {
@@ -44,6 +68,7 @@ export function extractLatestAssistantMessage(): PageStatePayload {
     if (candidates.length > 0 || text.length > 0) {
       latestMessageText = text
       taskCandidates = candidates
+      lastAssistantEl = el
       break
     }
   }
@@ -52,12 +77,16 @@ export function extractLatestAssistantMessage(): PageStatePayload {
     const last = assistantMessages[assistantMessages.length - 1] as HTMLElement
     latestMessageText = getLatestMessageText(last)
     taskCandidates = getTaskCandidatesFromMessage(last)
+    lastAssistantEl = last
   }
+
+  const isGenerating = isLatestMessageStillGenerating(lastAssistantEl)
 
   return {
     conversationId,
     supported,
     latestMessageText,
     taskCandidates,
+    isGenerating,
   }
 }

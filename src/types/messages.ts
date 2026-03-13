@@ -5,6 +5,8 @@ export type PageStatePayload = {
   supported: boolean
   latestMessageText: string | null
   taskCandidates: string[]
+  /** True when the latest assistant message is still streaming/generating; do not create or merge. */
+  isGenerating: boolean
 }
 
 /** Sent to content script to get fresh page state on demand. */

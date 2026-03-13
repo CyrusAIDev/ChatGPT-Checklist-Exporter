@@ -13,7 +13,10 @@ type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
 const isDev = (): boolean =>
   typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true
 
-function fetchFreshPageState(): Promise<GetPageStateForActiveTabResponse> {
+const PAGE_STATE_RETRY_ATTEMPTS = 3
+const PAGE_STATE_RETRY_DELAY_MS = 400
+
+function fetchPageStateOnce(): Promise<GetPageStateForActiveTabResponse> {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
       { type: 'GET_PAGE_STATE_FOR_ACTIVE_TAB' },
@@ -21,6 +24,24 @@ function fetchFreshPageState(): Promise<GetPageStateForActiveTabResponse> {
         resolve(response ?? { ok: false, error: 'no_response' }),
     )
   })
+}
+
+/** Fetch page state with retries on no_response (e.g. content script not ready after extension reload). */
+async function fetchPageStateWithRetry(): Promise<GetPageStateForActiveTabResponse> {
+  for (let attempt = 1; attempt <= PAGE_STATE_RETRY_ATTEMPTS; attempt++) {
+    const response = await fetchPageStateOnce()
+    if (response.ok || response.error !== 'no_response') return response
+    if (attempt < PAGE_STATE_RETRY_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, PAGE_STATE_RETRY_DELAY_MS))
+    } else {
+      return response
+    }
+  }
+  return { ok: false, error: 'no_response' }
+}
+
+function fetchFreshPageState(): Promise<GetPageStateForActiveTabResponse> {
+  return fetchPageStateWithRetry()
 }
 
 function App() {
@@ -34,24 +55,25 @@ function App() {
   const [archivedCollapsed, setArchivedCollapsed] = useState(true)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
 
-  useEffect(() => {
+  const loadPageState = () => {
     setPageState('loading')
     setPageError(null)
-    chrome.runtime.sendMessage(
-      { type: 'GET_PAGE_STATE_FOR_ACTIVE_TAB' },
-      (response: import('../../types/messages').GetPageStateForActiveTabResponse) => {
-        if (isDev()) {
-          console.log('[Living Checklist] GET_PAGE_STATE_FOR_ACTIVE_TAB response', response)
-        }
-        if (response?.ok === true) {
-          setPageState(response.payload)
-          setPageError(null)
-        } else {
-          setPageState(null)
-          setPageError(response?.ok === false ? response.error : 'no_response')
-        }
-      },
-    )
+    fetchPageStateWithRetry().then((response) => {
+      if (isDev()) {
+        console.log('[Living Checklist] GET_PAGE_STATE_FOR_ACTIVE_TAB response', response)
+      }
+      if (response?.ok === true) {
+        setPageState(response.payload)
+        setPageError(null)
+      } else {
+        setPageState(null)
+        setPageError(response?.ok === false ? response.error : 'no_response')
+      }
+    })
+  }
+
+  useEffect(() => {
+    loadPageState()
   }, [])
 
   useEffect(() => {
@@ -94,6 +116,10 @@ function App() {
         setError('This isn’t a saved conversation.')
         return
       }
+      if (fresh.isGenerating) {
+        setInfoMessage('Wait until ChatGPT finishes responding.')
+        return
+      }
       const parsed = parseLatestMessage(fresh)
       if (parsed.length === 0) {
         setError('No list items found in the latest message.')
@@ -126,6 +152,10 @@ function App() {
       const fresh = response.payload
       if (!fresh.supported || !fresh.conversationId) {
         setError('This isn’t a saved conversation.')
+        return
+      }
+      if (fresh.isGenerating) {
+        setInfoMessage('Wait until ChatGPT finishes responding.')
         return
       }
       if (fresh.conversationId !== checklist.conversationId) {
@@ -188,7 +218,8 @@ function App() {
     return (
       <div className="sidepanel">
         <header className="sidepanel-header"><h1>Living Checklist</h1></header>
-        <p className="state-unsupported">Couldn’t read this page (extraction failed). Try refreshing the ChatGPT tab and opening the panel again.</p>
+        <p className="state-unsupported">Couldn’t read this page The tab may still be loading or the extension was just reloaded.</p>
+        <button type="button" className="btn-primary" onClick={loadPageState}>Retry</button>
       </div>
     )
   }
@@ -216,6 +247,16 @@ function App() {
       <div className="sidepanel">
         <header className="sidepanel-header"><h1>Living Checklist</h1></header>
         <p className="state-unsupported">This isn’t a saved conversation. Use a URL like chatgpt.com/c/...</p>
+      </div>
+    )
+  }
+
+  if (pageState.isGenerating) {
+    return (
+      <div className="sidepanel">
+        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <p className="state-info">Wait until ChatGPT finishes responding before creating or merging a checklist.</p>
+        <p className="state-no-content">Then you can create or update your checklist from the complete message.</p>
       </div>
     )
   }
