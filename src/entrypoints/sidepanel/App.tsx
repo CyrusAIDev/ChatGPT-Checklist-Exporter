@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ChecklistRecord } from '../../types/checklist'
-import type { PageStatePayload, GetPageStateForActiveTabResponse, ReloadActiveTabResponse } from '../../types/messages'
+import type {
+  PageStatePayload,
+  GetPageStateForActiveTabResponse,
+  ReloadActiveTabResponse,
+  NavigateToConversationResponse,
+} from '../../types/messages'
 import { getChecklist, setChecklist, deleteChecklist } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
 import { mergeChecklist } from '../../lib/merge/merge-checklist'
@@ -16,6 +21,11 @@ const isDev = (): boolean =>
 
 const PAGE_STATE_RETRY_ATTEMPTS = 3
 const PAGE_STATE_RETRY_DELAY_MS = 400
+const RECOVERY_POLL_INTERVAL_MS = 800
+const RECOVERY_POLL_MAX_ATTEMPTS = 14
+const AFTER_RELOAD_WAIT_MS = 2000
+const AFTER_RELOAD_POLL_INTERVAL_MS = 1500
+const AFTER_RELOAD_POLL_MAX_ATTEMPTS = 10
 
 function fetchPageStateOnce(): Promise<GetPageStateForActiveTabResponse> {
   return new Promise((resolve) => {
@@ -34,6 +44,23 @@ async function fetchPageStateWithRetry(): Promise<GetPageStateForActiveTabRespon
     if (response.ok || response.error !== 'no_response') return response
     if (attempt < PAGE_STATE_RETRY_ATTEMPTS) {
       await new Promise((r) => setTimeout(r, PAGE_STATE_RETRY_DELAY_MS))
+    } else {
+      return response
+    }
+  }
+  return { ok: false, error: 'no_response' }
+}
+
+/** Poll for page state until ok or max attempts. Used for recovery so panel can recover without reopening. */
+async function pollPageState(
+  intervalMs: number,
+  maxAttempts: number,
+): Promise<GetPageStateForActiveTabResponse> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await fetchPageStateOnce()
+    if (response.ok) return response
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, intervalMs))
     } else {
       return response
     }
@@ -64,6 +91,21 @@ function App() {
       if (isDev()) {
         console.log('[Living Checklist] GET_PAGE_STATE_FOR_ACTIVE_TAB response', response)
       }
+      if (response?.ok === true) {
+        setPageState(response.payload)
+        setPageError(null)
+      } else {
+        setPageState(null)
+        setPageError(response?.ok === false ? response.error : 'no_response')
+      }
+    })
+  }
+
+  /** Retry from no_response: poll until page state is available so recovery works without reopening panel. */
+  const handleRetry = () => {
+    setPageState('loading')
+    setPageError(null)
+    pollPageState(RECOVERY_POLL_INTERVAL_MS, RECOVERY_POLL_MAX_ATTEMPTS).then((response) => {
       if (response?.ok === true) {
         setPageState(response.payload)
         setPageError(null)
@@ -161,7 +203,6 @@ function App() {
         return
       }
       if (fresh.conversationId !== checklist.conversationId) {
-        setError('Conversation changed. Refresh the panel.')
         return
       }
       const parsed = parseLatestMessage(fresh)
@@ -185,20 +226,44 @@ function App() {
     }
   }
 
+  /** Refresh active tab then poll until page state is available so recovery works without reopening panel. */
   const handleRefreshPage = () => {
     setRefreshingTab(true)
-    const fallback = setTimeout(() => setRefreshingTab(false), 3000)
     chrome.runtime.sendMessage(
       { type: 'RELOAD_ACTIVE_TAB' },
-      (response: ReloadActiveTabResponse | undefined) => {
-        clearTimeout(fallback)
-        if (response?.ok === true) {
-          setTimeout(() => {
-            loadPageState()
-            setRefreshingTab(false)
-          }, 1500)
-        } else {
+      async (response: ReloadActiveTabResponse | undefined) => {
+        if (response?.ok !== true) {
           setRefreshingTab(false)
+          return
+        }
+        setPageState('loading')
+        setPageError(null)
+        await new Promise((r) => setTimeout(r, AFTER_RELOAD_WAIT_MS))
+        const pollResponse = await pollPageState(
+          AFTER_RELOAD_POLL_INTERVAL_MS,
+          AFTER_RELOAD_POLL_MAX_ATTEMPTS,
+        )
+        setRefreshingTab(false)
+        if (pollResponse?.ok === true) {
+          setPageState(pollResponse.payload)
+          setPageError(null)
+        } else {
+          setPageState(null)
+          setPageError(pollResponse?.ok === false ? pollResponse.error : 'no_response')
+        }
+      },
+    )
+  }
+
+  const handleOpenOriginalConversation = () => {
+    if (!checklist?.conversationId) return
+    setError(null)
+    setInfoMessage(null)
+    chrome.runtime.sendMessage(
+      { type: 'NAVIGATE_TO_CONVERSATION', conversationId: checklist.conversationId },
+      (response: NavigateToConversationResponse | undefined) => {
+        if (response?.ok === true) {
+          setTimeout(loadPageState, 2500)
         }
       },
     )
@@ -250,7 +315,7 @@ function App() {
             <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
               {refreshingTab ? 'Refreshing…' : 'Refresh page'}
             </button>
-            <button type="button" className="btn-secondary" onClick={loadPageState} disabled={refreshingTab}>
+            <button type="button" className="btn-secondary" onClick={handleRetry} disabled={refreshingTab}>
               Retry
             </button>
           </div>
@@ -314,6 +379,22 @@ function App() {
         <PanelHeader />
         <div className="state-card">
           <p className="state-no-content">Conversation found, but there’s no assistant message yet. Scroll to the latest reply or send a message.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (checklist && pageState.conversationId !== checklist.conversationId) {
+    return (
+      <div className="sidepanel">
+        <PanelHeader />
+        <div className="state-card">
+          <p className="state-unsupported">This checklist is for a different conversation. Open that conversation to use it.</p>
+          <div className="state-actions">
+            <button type="button" className="btn-primary" onClick={handleOpenOriginalConversation}>
+              Open original conversation
+            </button>
+          </div>
         </div>
       </div>
     )

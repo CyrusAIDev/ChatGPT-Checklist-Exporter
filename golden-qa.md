@@ -103,6 +103,14 @@ Pass:
 - states are visually distinct
 - no misleading conversation-ready UI appears
 
+### 9b. Conversation-changed state (wrong conversation)
+When the checklist is for conversation A but the active tab is on conversation B:
+
+Pass:
+- panel shows a clear “wrong conversation” state (e.g. “This checklist is for a different conversation”)
+- **Open original conversation** button is present and navigates the active tab to the checklist’s conversation
+- no checklist library or multiple-checklist scope is added
+
 ### 10. Retry / no-response recovery
 Where possible:
 - open panel after extension reload or during flaky content-script availability
@@ -111,6 +119,7 @@ Pass:
 - panel does not fail silently
 - retry path is clear
 - recovery language is understandable
+- **Retry** or **Refresh page** actually recovers the panel (fresh page state is fetched and UI updates) without the user having to close and reopen the side panel
 
 ## Premium UI QA
 

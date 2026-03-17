@@ -1,11 +1,11 @@
 # Progress
 
 **Sprint:** Premium Polish Sprint  
-**Overall:** 83% `▓▓▓▓▓░░░░░` (P0–P4 done)
+**Overall:** 100% `▓▓▓▓▓▓▓▓▓▓` (complete)
 
-**Current Phase:** Phase P5 — Final Polish QA and Cleanup
+**Current Phase:** Sprint complete
 
-**Current Focus:** run tests/build, final visual cleanup, confirm MVP behavior, complete progress tracker
+**Current Focus:** none
 
 ## Polish Phase Checklist
 
@@ -14,7 +14,7 @@
 - [x] Phase P2 — Actions, Checklist Rows, and Progress Feel
 - [x] Phase P3 — States and Messages
 - [x] Phase P4 — Archived and Reset Polish
-- [ ] Phase P5 — Final Polish QA and Cleanup
+- [x] Phase P5 — Final Polish QA and Cleanup
 
 ## Completed
 
@@ -23,6 +23,7 @@
 - P2: Actions and checklist rows — stronger primary button; destructive isolated (margin-left: auto); row spacing and checkbox/text alignment; checked state uses --text-muted; subtle “X of Y completed” progress summary
 - P3: States and messages — unified state-card treatment for loading, unsupported, no_response, not_chatgpt, null, unsupported, generating, no assistant; short clear copy; refresh/retry recovery: no_response shows “Refresh page” (reloads active ChatGPT tab) + Retry, recommend refresh in copy; no new permissions
 - P4: Archived and reset — archived section: card-style block with label “Archived”, clearer toggle (“N items” / “Hide”), focus-visible; separator between primary action and Reset; reset dialog: calmer backdrop, border, spacing, explicit button order
+- P5: Recovery and conversation UX fixes — (1) Refresh/Retry recovery: Retry and Refresh page now poll for page state so the panel recovers without closing/reopening; (2) Conversation-changed state: when checklist is for another conversation, show dedicated state with “Open original conversation” (navigates active tab to that conversation); golden-qa and progress updated
 
 ## In Progress
 
@@ -30,7 +31,7 @@
 
 ## Next
 
-- P5: final polish QA and cleanup
+- none (sprint complete)
 
 ## Blockers
 

@@ -1,6 +1,7 @@
 import type {
   GetPageStateForActiveTabRequest,
   GetPageStateForActiveTabResponse,
+  NavigateToConversationResponse,
   PageStatePayload,
   ReloadActiveTabResponse,
 } from '../types/messages'
@@ -17,9 +18,17 @@ export default defineBackground(() => {
 
   chrome.runtime.onMessage.addListener(
     (
-      message: GetPageStateForActiveTabRequest | { type: 'RELOAD_ACTIVE_TAB' },
+      message:
+        | GetPageStateForActiveTabRequest
+        | { type: 'RELOAD_ACTIVE_TAB' }
+        | { type: 'NAVIGATE_TO_CONVERSATION'; conversationId: string },
       _sender: chrome.runtime.MessageSender,
-      sendResponse: (response: GetPageStateForActiveTabResponse | ReloadActiveTabResponse) => void,
+      sendResponse: (
+        response:
+          | GetPageStateForActiveTabResponse
+          | ReloadActiveTabResponse
+          | NavigateToConversationResponse,
+      ) => void,
     ) => {
       if (message.type === 'RELOAD_ACTIVE_TAB') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -35,6 +44,33 @@ export default defineBackground(() => {
               return
             }
             chrome.tabs.reload(tab.id)
+            sendResponse({ ok: true })
+          } catch {
+            sendResponse({ ok: false, error: 'invalid_url' })
+          }
+        })
+        return true
+      }
+
+      if (message.type === 'NAVIGATE_TO_CONVERSATION') {
+        const conversationId = message.conversationId
+        if (!conversationId || !/^[a-zA-Z0-9_-]+$/.test(conversationId)) {
+          sendResponse({ ok: false, error: 'invalid_id' })
+          return false
+        }
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const tab = tabs[0]
+          if (!tab || tab.id == null) {
+            sendResponse({ ok: false, error: 'no_tab' })
+            return
+          }
+          try {
+            const currentUrl = tab.url ? new URL(tab.url) : null
+            if (!currentUrl || currentUrl.origin !== CHATGPT_ORIGIN) {
+              sendResponse({ ok: false, error: 'not_chatgpt' })
+              return
+            }
+            chrome.tabs.update(tab.id, { url: `https://chatgpt.com/c/${conversationId}` })
             sendResponse({ ok: true })
           } catch {
             sendResponse({ ok: false, error: 'invalid_url' })

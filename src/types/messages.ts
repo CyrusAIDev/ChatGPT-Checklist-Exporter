@@ -24,3 +24,8 @@ export type GetPageStateForActiveTabResponse =
 export type ReloadActiveTabRequest = { type: 'RELOAD_ACTIVE_TAB' }
 
 export type ReloadActiveTabResponse = { ok: true } | { ok: false; error: string }
+
+/** Side panel asks background to navigate the active tab to a ChatGPT conversation. Only if tab is already ChatGPT. */
+export type NavigateToConversationRequest = { type: 'NAVIGATE_TO_CONVERSATION'; conversationId: string }
+
+export type NavigateToConversationResponse = { ok: true } | { ok: false; error: string }
