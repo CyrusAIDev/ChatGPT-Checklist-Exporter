@@ -1,254 +1,267 @@
-
-## FILE: build-plan.md — [download](sandbox:/mnt/data/build-plan.md)
-
-```md
 # Build Plan
 
 ## Purpose
 
-This file is the execution loop for Cursor. Finish one phase at a time. Do not jump ahead. At the end of each phase, update `progress.md` before starting the next phase.
+This file is the execution system for the premium polish sprint.
+
+Cursor should use this file to improve the current MVP without breaking core functionality and without drifting into feature work.
 
 ## Operating Rules
 
-- Work only on the current phase.
-- Do not rewrite architecture unless blocked.
-- Do not add features not named in `prd.md`.
-- Do not preserve legacy scope just because it exists.
-- Keep outputs small and concrete.
-- Prefer code changes over long explanations.
-- After each phase: run the listed checks, update `progress.md`, stop.
+- work only on the current polish phase
+- preserve current MVP behavior
+- do not broaden product scope
+- do not add AI, checklist library, backend, billing, or integrations
+- do not rewrite core business logic unless fixing a real bug
+- prefer visual polish and small UI cleanup over architecture work
+- update `progress.md` after each phase
+- create a git checkpoint after each completed phase
 
-## Token Rules for Cursor Chats
+## Required References
 
-- Read `prd.md`, `technical-spec.md`, `build-plan.md`, and `progress.md` only.
-- Do not restate the full spec in chat.
-- Report changes as: done, files changed, manual test result, next step, blockers.
-- If blocked, describe the blocker in 3 lines max and update `progress.md`.
-- Do not generate alternative architectures.
-- Do not write big retrospectives.
+Cursor should always read:
 
-## Phase 0 — Reset the Codebase
+- `@prd.md`
+- `@technical-spec.md`
+- `@build-plan.md`
+- `@progress.md`
 
-### Cursor should do
-- inspect current repo
-- delete legacy scope
-- create fresh WXT React TypeScript baseline if current project is worse than rebuilding
-- keep only assets or tiny DOM extraction code worth reusing
+## Response Rules for Cursor
+
+After each phase, report only:
+1. phase completed
+2. files changed
+3. tests run
+4. manual QA I should do now
+5. blockers
+6. whether `progress.md` was updated
+7. git checkpoint hash
+
+Keep responses compact.
+
+## Phase P0 — Freeze and Visual Audit
+
+### What Cursor should do
+- inspect current UI files
+- confirm current MVP behavior is already implemented
+- identify where polish should happen
+- identify UI-only files that should change
+- identify business-logic files that should be left alone
+- write a short plan for the polish phases in `progress.md`
 
 ### Definition of done
-- no Google OAuth
-- no Google Sheets export
-- no popup
-- no options page
-- no unnecessary permissions
-- clean project tree matches `technical-spec.md`
+- clear boundary between UI polish and protected MVP logic
+- no feature work started yet
 
 ### Manual test
-- repo boots locally
-- extension build command works
-- manifest contains only expected permissions
+- none required
 
 ### Update `progress.md`
-- mark Phase 0 complete
-- record what was deleted
-- lock architecture and permissions
+- mark P0 complete
+- set current phase to P1
 
-## Phase 1 — Minimal Extension Shell
+### Git checkpoint
+- commit after update
 
-### Cursor should do
-- wire MV3 manifest
-- add side panel entry
-- add minimal background worker
-- open side panel on action click
-- restrict storage to trusted contexts
-- add empty side panel UI shell
+---
+
+## Phase P1 — Panel Shell and Header
+
+### What Cursor should do
+- improve overall panel shell
+- improve header hierarchy
+- improve top spacing and section rhythm
+- improve panel title / supporting text presentation
+- introduce or clean up CSS variables if useful
+- keep layout one-column
 
 ### Definition of done
-- extension loads unpacked
-- toolbar action opens side panel
-- side panel renders placeholder states
+- the panel feels more anchored and premium
+- top area is clearer and more intentional
+- spacing is more consistent
 
 ### Manual test
-- load unpacked extension
-- click toolbar icon
-- side panel opens and renders
+- open supported conversation
+- open unsupported page
+- compare header and top shell clarity in both states
 
 ### Update `progress.md`
-- mark Phase 1 complete
-- set current phase to Phase 2
+- mark P1 complete
+- note visible shell/header improvements
+- set current phase to P2
 
-## Phase 2 — ChatGPT Detection and Extraction
+### Git checkpoint
+- commit after update
 
-### Cursor should do
-- add content script for `chatgpt.com`
-- extract `conversationId` from `/c/:id`
-- detect unsupported pages
-- extract latest assistant message
-- add message contract between side panel and content script
+---
 
-### Definition of done
-- side panel knows whether page is supported
-- side panel can fetch latest assistant message data
-- unsupported page state works
+## Phase P2 — Actions, Checklist Rows, and Progress Feel
 
-### Manual test
-- open saved ChatGPT conversation
-- confirm conversation detected
-- open non-conversation ChatGPT page
-- confirm unsupported state
-
-### Update `progress.md`
-- mark extraction status
-- note any selector fragility
-
-## Phase 3 — Parse and Create Checklist
-
-### Cursor should do
-- implement normalization
-- implement DOM-first parser
-- implement text fallback parser
-- dedupe exact duplicate source items
-- create checklist record from latest assistant message
-- add unit tests for normalization and parsing
+### What Cursor should do
+- improve primary vs secondary vs destructive action hierarchy
+- improve checklist row spacing
+- improve checkbox/text alignment
+- improve checked-state styling
+- add a subtle progress summary if it stays clean
+- keep rows readable for long text
 
 ### Definition of done
-- user can click **Create checklist**
-- checklist appears in side panel
-- parser handles bullets, numbered items, and markdown checkboxes
-
-### Manual test
-- test bullet list
-- test numbered list
-- test markdown checkbox list
-- test no-list failure state
-
-### Update `progress.md`
-- mark create flow complete
-- record parser coverage done
-
-## Phase 4 — Local State and Toggle Persistence
-
-### Cursor should do
-- add storage repo for `chrome.storage.local`
-- add schema validation
-- load checklist by conversation
-- persist toggle changes immediately
-- restore checklist on reload
-
-### Definition of done
-- checked state survives page reload and browser restart
-- invalid stored data does not crash UI
+- primary action is obvious
+- checklist feels easier to scan
+- completed state is clear but still readable
+- progress feel is subtle and useful
 
 ### Manual test
 - create checklist
-- toggle several items
-- reload tab and browser
-- verify state persists
+- check/uncheck items
+- confirm rows feel readable
+- confirm progress feel is helpful, not cluttered
 
 ### Update `progress.md`
-- mark persistence complete
-- note any storage issues
+- mark P2 complete
+- set current phase to P3
 
-## Phase 5 — Merge and Archive
+### Git checkpoint
+- commit after update
 
-### Cursor should do
-- implement merge engine
-- exact normalized match first
-- conservative fuzzy match second
-- ambiguous becomes new item
-- unmatched old items become archived
-- add unit tests for merge behavior
-- show merge summary counts
+---
+
+## Phase P3 — States and Messages
+
+### What Cursor should do
+- unify the visual treatment of:
+  - loading
+  - unsupported
+  - not-saved conversation
+  - no response / retry
+  - extraction failure
+  - waiting for ChatGPT
+  - no assistant content
+  - no parseable checklist
+  - already up to date
+- keep message language short and clear
+- add Retry control only where useful
+- ensure state surfaces feel calm and intentional
 
 ### Definition of done
-- merge preserves checked state on safe matches
-- removed items move to archived
-- same source does not re-merge unnecessarily
+- all major states feel visually consistent
+- states are easy to distinguish
+- the panel feels more trustworthy during edge cases
 
 ### Manual test
-- merge minor wording change
-- merge added item
-- merge removed item
-- merge ambiguous rewrite
+- unsupported page
+- non-saved conversation
+- no-list case
+- already-up-to-date case
+- generating/wait case
 
 ### Update `progress.md`
-- mark merge complete
-- record any known merge limitations
+- mark P3 complete
+- set current phase to P4
 
-## Phase 6 — Reset and Error States
+### Git checkpoint
+- commit after update
 
-### Cursor should do
-- add destructive reset confirmation
-- wipe checklist for current conversation only
-- finish user-facing error states
-- polish archived section default collapse
+---
+
+## Phase P4 — Archived and Reset Polish
+
+### What Cursor should do
+- improve archived section presentation
+- keep archived collapsed by default
+- make archived feel secondary but intentional
+- improve reset placement and destructive clarity
+- make the reset dialog feel more polished without adding complexity
 
 ### Definition of done
-- reset works only after confirmation
-- all main failure states are readable
-- UI is stable for MVP
+- archived feels cleaner and easier to understand
+- reset remains safe and clearly destructive
+- destructive actions do not visually compete with the primary action
 
 ### Manual test
-- reset current conversation checklist
-- verify checklist is gone
-- verify other conversation data is untouched
-- verify extraction and no-list errors
+- merge so something becomes archived
+- inspect archived section
+- test reset cancel
+- test reset confirm
 
 ### Update `progress.md`
-- mark reset and error handling complete
-- set current phase to final QA
+- mark P4 complete
+- set current phase to P5
 
-## Phase 7 — Final QA and Package
+### Git checkpoint
+- commit after update
 
-### Cursor should do
-- run unit tests
-- do final manifest audit
-- clean dead code
-- verify no banned scope exists
-- create production build
+---
+
+## Phase P5 — Final Polish QA and Cleanup
+
+### What Cursor should do
+- run tests
+- run build
+- do final visual cleanup
+- remove tiny dead UI leftovers if clearly safe
+- confirm no scope creep was introduced
+- confirm current MVP behavior still works
+- update `progress.md`
+- create final checkpoint commit
 
 ### Definition of done
-- MVP builds cleanly
-- manifest is minimal
-- no legacy scope remains
-- `progress.md` shows all phases complete or clearly notes leftovers
+- MVP still works
+- UI feels noticeably more premium
+- no new product scope added
+- build passes
+- tests pass
+- progress tracker is complete
 
 ### Manual test
-- one full happy path from create to merge to reset
-- one unsupported page test
-- one no-list test
+Run one full pass:
+1. create checklist
+2. persist checklist
+3. merge revised plan
+4. verify wait-until-finished state
+5. verify archived
+6. verify already up to date
+7. verify reset
+8. verify unsupported / non-saved / no-list states
 
 ### Update `progress.md`
-- mark project ready
-- set percent complete
-- list any non-blocking follow-ups
+- mark P5 complete
+- mark overall sprint complete
+- list non-blocking follow-ups only if needed
+
+### Git checkpoint
+- commit after update
+
+---
 
 ## Anti-Bloat Rules
 
-- no popup
-- no options page
-- no export
-- no auth
-- no backend
-- no analytics
-- no manual task editing UI
-- no extra permissions
-- no extra state libraries
-- no UI kit
-- no generic refactor spree
+Do not add:
+- AI features
+- checklist library
+- multiple checklists
+- backend
+- billing
+- integrations
+- task-manager features
+- settings screens
+- new permissions
+- UI frameworks
+- large animation systems
 
 ## Resume Rules
 
 When starting a new Cursor chat:
-1. read `progress.md`
-2. read the current phase in `build-plan.md`
-3. read only the matching sections of `technical-spec.md`
-4. complete the current phase only
+1. read `@progress.md`
+2. identify the current incomplete polish phase
+3. read only the relevant sections of `@technical-spec.md`
+4. complete only that phase
 5. update `progress.md`
+6. commit a checkpoint
 
-## Useful Prompts
+## Useful Cursor Prompts
 
-- Complete the current phase from `build-plan.md` and update `progress.md`.
-- Finish Phase 3 only. Do not start Phase 4.
-- Audit the repo against `prd.md`, `technical-spec.md`, and `progress.md`. Report only drift.
-- Resume from the next incomplete phase.
+- Complete the current polish phase from `@build-plan.md` and update `@progress.md`.
+- Finish Phase P2 only. Do not start P3.
+- Audit the repo against `@prd.md`, `@technical-spec.md`, and `@progress.md`. Report only drift.
+- Resume from the next incomplete polish phase.

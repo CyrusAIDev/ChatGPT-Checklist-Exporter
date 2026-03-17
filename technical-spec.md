@@ -1,474 +1,260 @@
-
-## FILE: technical-spec.md — [download](sandbox:/mnt/data/technical-spec.md)
-
-```md
 # Chosen Stack
 
-WXT + React + TypeScript + plain CSS + Vitest
+Keep the current stack:
+
+- WXT
+- React
+- TypeScript
+- plain CSS
+- Vitest
 
 # Why This Stack
 
-- WXT gives a clean modern extension build without custom build-system work.
-- React is the simplest maintainable side panel UI for this product.
-- TypeScript strict mode protects merge and storage logic.
-- Plain CSS keeps dependencies low.
-- Vitest is enough for the risky logic on day one.
-- Playwright is useful later, but not required for the first shipping pass.
-
-# Project Structure
-
-```text
-/
-  public/
-    icon-16.png
-    icon-32.png
-    icon-48.png
-    icon-128.png
-
-  src/
-    entrypoints/
-      background.ts
-      chatgpt.content.ts
-      sidepanel/
-        index.html
-        main.tsx
-        App.tsx
-
-    components/
-      ChecklistList.tsx
-      ChecklistItemRow.tsx
-      EmptyState.tsx
-      ErrorState.tsx
-      HeaderActions.tsx
-      ResetConfirmDialog.tsx
-
-    lib/
-      chatgpt/
-        conversation.ts
-        extract-latest-assistant-message.ts
-        parse-checklist.ts
-        normalize-item.ts
-      merge/
-        merge-checklist.ts
-        fuzzy-match.ts
-      storage/
-        checklist-repo.ts
-        storage-guards.ts
-        storage-keys.ts
-      chrome/
-        messages.ts
-
-    types/
-      checklist.ts
-      messages.ts
-
-    styles/
-      sidepanel.css
-
-  tests/
-    unit/
-      normalize-item.test.ts
-      parse-checklist.test.ts
-      merge-checklist.test.ts
-      storage-guards.test.ts
-
-  wxt.config.ts
-  tsconfig.json
-  vitest.config.ts
-  package.json
-  Manifest and Permissions
-
-Use this MVP manifest shape:
-{
-  "manifest_version": 3,
-  "name": "Living Checklist for ChatGPT",
-  "version": "0.1.0",
-  "action": {
-    "default_title": "Open Living Checklist"
-  },
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "permissions": ["storage", "sidePanel", "tabs"],
-  "host_permissions": ["https://chatgpt.com/*"],
-  "content_scripts": [
-    {
-      "matches": ["https://chatgpt.com/*"],
-      "js": ["chatgpt.content.js"],
-      "run_at": "document_idle"
-    }
-  ],
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  }
-}
-Rules:
-
-Do not add activeTab, scripting, or identity. (Exception: tabs is allowed when required for active-tab page-state messaging.)
-
-Do not add any Google API host permissions.
-
-Background should set openPanelOnActionClick.
-
-Restrict storage access to trusted contexts only.
-
-Core Extension Architecture
-
-Side panel
-
-main product UI
-
-loads active conversation state
-
-reads and writes checklist data
-
-triggers create, merge, toggle, and reset
-
-renders active and archived items
-
-Content script
-
-runs only on https://chatgpt.com/*
-
-reads the ChatGPT DOM
-
-returns conversation ID and latest assistant message data
-
-does not own storage or merge logic
-
-Background/service worker
-
-minimal setup only
-
-opens side panel on action click
-
-sets storage access level
-
-no product logic, no network, no polling
-
-Shared utilities/types
-
-pure functions for parsing, normalization, merge, and storage validation
-
-shared message contracts between side panel and content script
-
-Conversation Identification
-
-Use the URL path only.
-
-Rule:
-
-accept only /c/:conversationId
-
-derive conversationId from window.location.pathname
-
-if there is no /c/:conversationId, treat the page as unsupported
-
-Do not derive checklist identity from title, sidebar text, or DOM content.
-
-Parsing Strategy
-
-Use a two-step parser in the content script.
-
-Step 1: DOM-first
-
-find the latest assistant message container
-
-read <li> elements in DOM order
-
-extract visible text with textContent
-
-detect markdown checkbox intent from leading [ ] or [x]
-
-Step 2: text fallback
-
-if no list items exist, read the latest assistant message text
-
-split by line
-
-keep only lines that look like bullets, numbered items, or markdown checkboxes
-
-Parsing rules:
-
-trim whitespace
-
-remove list prefixes and checkbox markers from stored display text
-
-ignore empty lines
-
-ignore prose paragraphs
-
-flatten nested lists into one ordered list for MVP
-
-dedupe exact duplicate normalized items inside the same capture
-
-Merge Strategy
-
-Start with existing active items only.
-
-Normalize existing and new items the same way:
-
-lowercase
-
-trim
-
-remove list and checkbox prefixes
-
-collapse internal whitespace
-
-strip trailing punctuation
-
-Match in this order:
-
-exact normalized match
-
-conservative fuzzy match
-
-Conservative fuzzy match uses token overlap only.
-
-Allow a fuzzy match only when:
-
-the score is high
-
-there is one clear best candidate
-
-the result is unambiguous
-
-If unclear, treat as a new item.
-
-Matched item keeps old id and old checked value.
-
-Matched item updates display text to the latest source text.
-
-Unmatched new item becomes a new active item.
-
-Unmatched old active item becomes archived.
-
-Never auto-delete.
-
-Never auto-uncheck a matched item.
-
-Rebuild active order to match the latest source order.
-
-Recommended fuzzy implementation:
-
-tokenize normalized strings by spaces
-
-score = 2 * sharedTokenCount / (oldTokenCount + newTokenCount)
-
-require score >= 0.85
-
-require best candidate to beat second-best by at least 0.10
-
-otherwise treat as ambiguous
-
-Storage Strategy
-
-Use chrome.storage.local only.
-
-Key format:
-
-checklist:${conversationId}
-
-Rules:
-
-read on side panel load after conversation resolution
-
-write full record on create, merge, toggle, and reset
-
-store sourceFingerprint to prevent re-merging the same latest source twice
-
-validate stored data before use
-
-keep content script out of checklist storage access
-
-do not use localStorage, storage.sync, IndexedDB, or remote persistence
-
-State Management
-
-Use a single useReducer in the side panel app.
-
-Keep state limited to:
-
-supported page status
-
-conversation ID
-
-checklist record
-
-busy state
-
-transient error text
-
-last merge summary
-
-Do not add Redux, Zustand, MobX, or extra state libraries.
-
-Error Handling
-
-User-facing states:
-
-unsupported page
-
-no checklist found
-
-extraction failed
-
-already up to date
-
-still generating (disable create/merge, show wait message)
-
-storage failed
-
-corrupted stored data
-
-Rules:
-
-never overwrite valid saved data with an invalid parse result
-
-if merge fails, keep existing checklist untouched
-
-validate stored records on read
-
-surface plain-English errors in the side panel
-
-log internal errors in development only
-
-Security and Privacy Rules
-
-no network requests in MVP
-
-no OAuth
-
-no remote scripts or remote HTML
-
-no analytics in MVP
-
-no innerHTML, dangerouslySetInnerHTML, eval, or dynamic code execution
-
-validate all messages between side panel and content script
-
-request only minimal permissions
-
-keep storage local only
-
-publish honest privacy disclosures later if the product ships publicly
-
-Code Quality Rules
-
-TypeScript strict mode on
-
-no any in parse, merge, storage, or message code
-
-no dead code
-
-no placeholder billing/auth/integration scaffolding
-
-minimal dependencies
-
-pure functions for normalize, parse, merge, and storage validation
-
-one job per module
-
-no premature abstraction
-
-no broad refactors without updating progress.md
-
-Minimum Testing Strategy
-
-Day-one required:
-
-unit tests for normalization
-
-unit tests for parsing
-
-unit tests for merge behavior
-
-unit tests for storage validation
-
-manual QA at phase boundaries
-
-Manual QA focus:
-
-create checklist from real ChatGPT list
-
-toggle items and reload
-
-merge revised plan
-
-verify archived items
-
-verify destructive reset
-
-verify unsupported page handling
-
-Optional later:
-
-Playwright smoke tests for create, merge, reload, and reset
-
-Deletion Plan for Legacy Scope
-
-Delete completely:
-
-Google OAuth
-
-Google Sheets export
-
-popup flow
-
-options page
-
-auth/cloud/export code
-
-unnecessary permissions
-
-Google-specific config and environment handling
-
-generic starter-template clutter not required for side panel + content script + storage
-
-demo settings, themes, i18n, and bridge abstractions not needed for MVP
-
-Reuse only if directly helpful:
-
-icon assets
-
-tiny pieces of ChatGPT DOM extraction logic
-
-basic build config only if it is already cleaner than a fresh WXT setup
-
-Preferred approach:
-
-start from a fresh WXT app
-
-port only useful ChatGPT extraction ideas
-
-do not refactor legacy junk into the new product
-
-Build Sequence
-
-Create fresh WXT React TypeScript project.
-
-Configure minimal manifest and side panel.
-
-Add minimal background worker.
-
-Add ChatGPT content script for conversation ID and latest assistant extraction.
-
-Add pure normalize and parse utilities with unit tests.
-
-Add storage repo and schema guards.
-
-Build side panel shell with unsupported and empty states.
-
-Implement create checklist flow.
-
-Implement toggle persistence.
-
-Implement merge and archive logic.
-
-Implement destructive reset confirmation.
-
-Run unit tests and manual QA.
-
-Package MVP.
+The current stack is already correct for the product and already implemented. This sprint is about premium polish, not stack changes.
+
+The best path is:
+- keep business logic stable
+- improve the presentation layer
+- make only small UI-facing code cleanup changes when clearly useful
+
+# Sprint Goal
+
+Refine the side panel UI so it feels premium, calm, readable, and intentional without changing the core MVP behavior.
+
+# Non-Goals for This Sprint
+
+Do not build:
+- checklist library
+- AI actions
+- backend
+- billing
+- integrations
+- popup
+- options page
+- manual task editing
+- drag and drop
+- due dates / priorities / tags
+- task-manager expansion
+- broad merge/storage refactors
+
+# What Can Change
+
+Allowed:
+- side panel layout improvements
+- typography and spacing improvements
+- action hierarchy improvements
+- state card improvements
+- empty/error/info/wait state presentation improvements
+- archived section presentation improvements
+- subtle progress indicator
+- small presentational component extraction
+- CSS variable cleanup
+- small App.tsx cleanup if it reduces UI risk
+
+Not allowed:
+- changing core storage behavior
+- changing core merge behavior
+- changing checklist identity model
+- changing permissions
+- adding backend assumptions into current MVP flow
+
+# UI Architecture Rules
+
+Business logic stays stable.
+
+Presentation can be cleaned up.
+
+Preferred direction:
+- keep `App.tsx` as orchestrator
+- extract tiny presentational components only if they reduce UI complexity
+- do not create a giant component tree
+- do not move business logic into style components
+- keep state derivation simple and local
+
+Recommended presentational pieces if useful:
+- `PanelHeader`
+- `StateCard`
+- `ActionBar`
+- `ChecklistSection`
+- `ProgressSummary`
+- `ArchivedSection`
+
+These are optional. Only extract them if they make the UI easier to maintain.
+
+# Design System Rules
+
+Use a very small styling system.
+
+Introduce or clean up:
+- CSS variables for spacing
+- CSS variables for colors
+- CSS variables for radius
+- CSS variables for typography scale
+- CSS variables for border/surface tones
+- consistent button classes
+- consistent state-card classes
+
+Keep it small and local.
+
+Do not add:
+- Tailwind
+- UI kits
+- CSS frameworks
+- animation libraries
+
+# Visual Rules
+
+## Layout
+- one-column panel
+- strong top section
+- clear vertical rhythm
+- consistent section spacing
+- avoid cramped stacking
+
+## Header
+Should communicate:
+- product title or checklist context
+- short supporting line
+- optional subtle progress summary
+
+Must feel anchored and premium.
+
+## Action Hierarchy
+- primary action: strongest visual weight
+- secondary actions: lighter
+- destructive action: isolated and clearly dangerous
+
+## Checklist Rows
+- more breathing room
+- checkbox alignment cleaned up
+- text should wrap well
+- checked state should be de-emphasized but still readable
+- long items should remain scannable
+
+## State Presentation
+Create a consistent pattern for:
+- loading
+- unsupported
+- not saved conversation
+- no response / retry
+- extraction failure
+- waiting for ChatGPT to finish
+- no assistant content
+- no parseable checklist
+- already up to date
+
+Each should feel intentional and visually consistent.
+
+## Archived Section
+- secondary surface
+- collapsed by default
+- clearer section label
+- visually distinct from active checklist
+- should feel “removed from latest plan,” not “trash”
+
+## Progress Feel
+Allowed only if subtle.
+
+Recommended:
+- completed count text such as `3 of 9 completed`
+- optional thin progress bar
+- no dashboard widgets
+- no analytics feeling
+
+# Accessibility and Usability Rules
+
+- preserve clear contrast
+- preserve readable font sizes
+- preserve obvious button states
+- preserve keyboard focus visibility
+- use plain language in messages
+- do not rely on color alone to signal meaning
+- keep states low-cognitive-load
+
+# Code Quality Rules
+
+- do not touch merge/storage logic unless required by a real bug
+- keep TypeScript strict
+- no dead code
+- no speculative abstractions for future AI/library work
+- no new dependency unless clearly justified
+- no broad refactors
+- no duplicate style patterns if a small shared pattern can solve it
+- avoid giant CSS sprawl; group styles by shell / states / checklist / dialog / buttons
+
+# Future Compatibility Rules
+
+This sprint must leave clean seams for:
+
+## Checklist library later
+The side panel should be polishable now without assuming only one future view forever.
+A future library view should be able to coexist with the current checklist view.
+
+## Paid AI action later
+The action area should eventually be able to host one optional premium action without redesigning the whole panel.
+
+Do not build either now. Just avoid painting the UI into a corner.
+
+# Testing Strategy
+
+## Required
+- run existing unit tests
+- run production build
+- manually test:
+  - create
+  - persist
+  - merge
+  - no-op merge
+  - waiting while ChatGPT generates
+  - reset
+  - unsupported/non-saved states
+  - retry/no-response recovery if applicable
+
+## Visual QA
+Check:
+- spacing consistency
+- primary action prominence
+- reset isolation
+- archived readability
+- state clarity
+- progress subtlety
+- no obvious visual clutter
+
+# Build Sequence
+
+## Phase P0 — Freeze and audit current MVP shell
+- verify current working behavior before polish
+- identify UI-only files to change
+- confirm business logic is untouched
+
+## Phase P1 — Panel shell and header polish
+- improve outer layout
+- improve header
+- improve section rhythm
+- improve general spacing and typography
+
+## Phase P2 — Actions and checklist readability
+- improve action hierarchy
+- improve checklist row spacing and readability
+- improve checked-state styling
+- add subtle progress summary if clean
+
+## Phase P3 — State polish
+- unify empty/error/info/wait state presentation
+- improve retry/no-response presentation
+- improve already-up-to-date presentation
+
+## Phase P4 — Archived and reset polish
+- improve archived section treatment
+- ensure reset remains clearly destructive and separate
+
+## Phase P5 — QA and cleanup
+- run tests/build
+- remove dead UI leftovers if safe
+- final visual QA
+- update progress.md
+- commit checkpoint
+
+# Definition of Done
+
+The panel should feel noticeably more premium without adding features, without changing the core product promise, and without reducing reliability.
