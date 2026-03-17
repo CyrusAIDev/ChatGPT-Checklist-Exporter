@@ -1,11 +1,11 @@
 # Progress
 
 **Sprint:** Premium Polish Sprint  
-**Overall:** 67% `▓▓▓▓░░░░░░` (P0–P3 done)
+**Overall:** 83% `▓▓▓▓▓░░░░░` (P0–P4 done)
 
-**Current Phase:** Phase P4 — Archived and Reset Polish
+**Current Phase:** Phase P5 — Final Polish QA and Cleanup
 
-**Current Focus:** archived section presentation, reset placement and destructive clarity, reset dialog polish
+**Current Focus:** run tests/build, final visual cleanup, confirm MVP behavior, complete progress tracker
 
 ## Polish Phase Checklist
 
@@ -13,7 +13,7 @@
 - [x] Phase P1 — Panel Shell and Header
 - [x] Phase P2 — Actions, Checklist Rows, and Progress Feel
 - [x] Phase P3 — States and Messages
-- [ ] Phase P4 — Archived and Reset Polish
+- [x] Phase P4 — Archived and Reset Polish
 - [ ] Phase P5 — Final Polish QA and Cleanup
 
 ## Completed
@@ -22,6 +22,7 @@
 - P1: Panel shell and header — CSS variables (spacing, typography, color); PanelHeader with title + supporting line; section rhythm; variables applied to states/archived/dialog
 - P2: Actions and checklist rows — stronger primary button; destructive isolated (margin-left: auto); row spacing and checkbox/text alignment; checked state uses --text-muted; subtle “X of Y completed” progress summary
 - P3: States and messages — unified state-card treatment for loading, unsupported, no_response, not_chatgpt, null, unsupported, generating, no assistant; short clear copy; refresh/retry recovery: no_response shows “Refresh page” (reloads active ChatGPT tab) + Retry, recommend refresh in copy; no new permissions
+- P4: Archived and reset — archived section: card-style block with label “Archived”, clearer toggle (“N items” / “Hide”), focus-visible; separator between primary action and Reset; reset dialog: calmer backdrop, border, spacing, explicit button order
 
 ## In Progress
 
@@ -29,7 +30,7 @@
 
 ## Next
 
-- P4: archived and reset polish
+- P5: final polish QA and cleanup
 
 ## Blockers
 

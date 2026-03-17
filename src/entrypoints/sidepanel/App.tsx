@@ -342,6 +342,7 @@ function App() {
             <button type="button" className="btn-primary" onClick={handleMergeLatest} disabled={busy}>
               {busy ? 'Merging…' : 'Merge latest'}
             </button>
+            <span className="header-actions-sep" aria-hidden="true" />
             <button type="button" className="btn-destructive" onClick={handleResetClick} disabled={busy}>
               Reset checklist
             </button>
@@ -372,14 +373,17 @@ function App() {
           </ul>
           {archivedItems.length > 0 && (
             <div className="archived-section">
-              <button
-                type="button"
-                className="archived-toggle"
-                onClick={() => setArchivedCollapsed(!archivedCollapsed)}
-                aria-expanded={!archivedCollapsed}
-              >
-                {archivedCollapsed ? '▼' : '▲'} Archived ({archivedItems.length})
-              </button>
+              <div className="archived-section-header">
+                <span className="archived-section-label">Archived</span>
+                <button
+                  type="button"
+                  className="archived-toggle"
+                  onClick={() => setArchivedCollapsed(!archivedCollapsed)}
+                  aria-expanded={!archivedCollapsed}
+                >
+                  {archivedCollapsed ? '▼' : '▲'} {archivedCollapsed ? `${archivedItems.length} item${archivedItems.length !== 1 ? 's' : ''}` : 'Hide'}
+                </button>
+              </div>
               {!archivedCollapsed && (
                 <ul className="checklist-list archived-list">
                   {archivedItems.map((item) => (
