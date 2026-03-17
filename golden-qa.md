@@ -120,6 +120,8 @@ Pass:
 - retry path is clear
 - recovery language is understandable
 - **Retry** or **Refresh page** actually recovers the panel (fresh page state is fetched and UI updates) without the user having to close and reopen the side panel
+- recovery must not require closing or reopening the panel
+- after **Refresh page**, the panel must recover automatically when the ChatGPT tab has finished loading (no click-away-and-back)
 
 ## Premium UI QA
 

@@ -1,11 +1,11 @@
 # Progress
 
 **Sprint:** Premium Polish Sprint  
-**Overall:** 100% `▓▓▓▓▓▓▓▓▓▓` (complete)
+**Overall:** Polish phases complete; one reliability bug fixed post-P5
 
-**Current Phase:** Sprint complete
+**Current Phase:** Recovery bug fix (post-P5)
 
-**Current Focus:** none
+**Current Focus:** Retry/Refresh recovery must work without panel reopen; panel must recover automatically when active ChatGPT tab becomes ready
 
 ## Polish Phase Checklist
 
@@ -15,6 +15,7 @@
 - [x] Phase P3 — States and Messages
 - [x] Phase P4 — Archived and Reset Polish
 - [x] Phase P5 — Final Polish QA and Cleanup
+- [ ] Recovery bug — Retry/Refresh recovery without click-away-and-back (in progress)
 
 ## Completed
 
@@ -27,11 +28,11 @@
 
 ## In Progress
 
-- none
+- Recovery bug fix: panel must subscribe to real tab lifecycle (tabs.onUpdated(complete), tabs.onActivated) so Refresh page leads to automatic recovery when tab is ready; Retry must feel fast; no click-away-and-back required
 
 ## Next
 
-- none (sprint complete)
+- Mark recovery bug complete in this checklist once QA confirms; then sprint can be considered fully done
 
 ## Blockers
 

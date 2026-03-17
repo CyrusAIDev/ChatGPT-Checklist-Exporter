@@ -11,6 +11,15 @@
   --text-muted-strong: #374151;
   --border: #e5e5e5;
   --border-subtle: #eee;
+  --accent: #0d6efd;
+  --accent-hover: #0b5ed7;
+  --surface: #f8f9fa;
+  --surface-info: #e7f1ff;
+  --surface-error: #fef2f2;
+  --state-error-text: #b91c1c;
+  --btn-secondary-border: #dee2e6;
+  --btn-secondary-hover-bg: #f1f3f5;
+  --btn-destructive-border: #fca5a5;
 
   padding: var(--panel-padding-y) var(--panel-padding-x);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -56,7 +65,7 @@
 
 .sidepanel .state-card {
   padding: 1rem;
-  background: #fafafa;
+  background: var(--surface);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
@@ -104,11 +113,11 @@
 }
 
 .sidepanel .state-error {
-  color: #b91c1c;
+  color: var(--state-error-text);
   font-size: 0.875rem;
   margin: 0 0 0.75rem 0;
   padding: 0.5rem 0.6rem;
-  background: #fef2f2;
+  background: var(--surface-error);
   border-radius: var(--radius-sm);
 }
 
@@ -117,7 +126,7 @@
   font-size: 0.875rem;
   margin: 0 0 0.75rem 0;
   padding: 0.5rem 0.6rem;
-  background: #f3f4f6;
+  background: var(--surface-info);
   border-radius: var(--radius-sm);
 }
 
@@ -136,14 +145,14 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: #fff;
-  background: #2563eb;
+  background: var(--accent);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .sidepanel .btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--accent-hover);
 }
 
 .sidepanel .btn-primary:disabled {
@@ -155,32 +164,32 @@
   padding: 0.45rem 0.9rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-muted-strong);
   background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--btn-secondary-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .sidepanel .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--text-muted);
 }
 
 .sidepanel .btn-destructive {
   padding: 0.45rem 0.9rem;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #b91c1c;
+  color: var(--state-error-text);
   background: #fff;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--btn-destructive-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .sidepanel .btn-destructive:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #b91c1c;
+  background: var(--surface-error);
+  border-color: var(--state-error-text);
 }
 
 .sidepanel .btn-destructive:disabled {
@@ -245,7 +254,7 @@
 .sidepanel .checklist-item-row input[type="checkbox"] {
   margin-top: 0.2em;
   flex-shrink: 0;
-  accent-color: #2563eb;
+  accent-color: var(--accent);
 }
 
 .sidepanel .item-text {
@@ -270,7 +279,7 @@
 .sidepanel .archived-section {
   margin-top: var(--section-gap);
   padding: 0.75rem 0.875rem;
-  background: #fafafa;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
@@ -305,7 +314,7 @@
 }
 
 .sidepanel .archived-toggle:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -382,8 +391,8 @@
 .sidepanel .reset-dialog-actions .btn-destructive {
   order: 2;
   color: #fff;
-  background: #b91c1c;
-  border-color: #b91c1c;
+  background: var(--state-error-text);
+  border-color: var(--state-error-text);
 }
 
 .sidepanel .reset-dialog-actions .btn-destructive:hover {

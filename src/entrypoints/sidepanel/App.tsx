@@ -19,13 +19,11 @@ type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
 const isDev = (): boolean =>
   typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true
 
+const CHATGPT_ORIGIN = 'https://chatgpt.com'
 const PAGE_STATE_RETRY_ATTEMPTS = 3
-const PAGE_STATE_RETRY_DELAY_MS = 400
-const RECOVERY_POLL_INTERVAL_MS = 800
-const RECOVERY_POLL_MAX_ATTEMPTS = 14
-const AFTER_RELOAD_WAIT_MS = 2000
-const AFTER_RELOAD_POLL_INTERVAL_MS = 1500
-const AFTER_RELOAD_POLL_MAX_ATTEMPTS = 10
+const PAGE_STATE_RETRY_DELAY_MS = 200
+const RECOVERY_POLL_INTERVAL_MS = 400
+const RECOVERY_POLL_MAX_ATTEMPTS = 20
 
 function fetchPageStateOnce(): Promise<GetPageStateForActiveTabResponse> {
   return new Promise((resolve) => {
@@ -116,8 +114,57 @@ function App() {
     })
   }
 
+  /** Re-fetch page state when the active ChatGPT tab becomes ready (e.g. after refresh). Clears refreshing state. */
+  const reFetchFromTabReady = () => {
+    setPageState('loading')
+    setPageError(null)
+    fetchPageStateWithRetry().then((response) => {
+      if (isDev()) {
+        console.log('[Living Checklist] tab-ready re-fetch response', response)
+      }
+      if (response?.ok === true) {
+        setPageState(response.payload)
+        setPageError(null)
+      } else {
+        setPageState(null)
+        setPageError(response?.ok === false ? response.error : 'no_response')
+      }
+      setRefreshingTab(false)
+    })
+  }
+
   useEffect(() => {
     loadPageState()
+  }, [])
+
+  /** Subscribe to tab lifecycle so panel recovers when active ChatGPT tab becomes ready (e.g. after Refresh page) or user switches tab. */
+  useEffect(() => {
+    const onTabUpdated = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (changeInfo.status !== 'complete') return
+      chrome.tabs.get(tabId, (tab) => {
+        if (chrome.runtime.lastError || !tab?.url) return
+        try {
+          if (new URL(tab.url).origin !== CHATGPT_ORIGIN) return
+        } catch {
+          return
+        }
+        chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
+          const active = activeTabs[0]
+          if (!active || active.id !== tabId) return
+          /* Brief delay so content script can inject after document complete. */
+          setTimeout(reFetchFromTabReady, 400)
+        })
+      })
+    }
+    const onTabActivated = () => {
+      reFetchFromTabReady()
+    }
+    chrome.tabs.onUpdated.addListener(onTabUpdated)
+    chrome.tabs.onActivated.addListener(onTabActivated)
+    return () => {
+      chrome.tabs.onUpdated.removeListener(onTabUpdated)
+      chrome.tabs.onActivated.removeListener(onTabActivated)
+    }
   }, [])
 
   useEffect(() => {
@@ -226,31 +273,20 @@ function App() {
     }
   }
 
-  /** Refresh active tab then poll until page state is available so recovery works without reopening panel. */
+  /** Refresh active tab; tab onUpdated(complete) listener will re-fetch and recover panel automatically. */
   const handleRefreshPage = () => {
     setRefreshingTab(true)
+    setPageState('loading')
+    setPageError(null)
     chrome.runtime.sendMessage(
       { type: 'RELOAD_ACTIVE_TAB' },
-      async (response: ReloadActiveTabResponse | undefined) => {
+      (response: ReloadActiveTabResponse | undefined) => {
         if (response?.ok !== true) {
           setRefreshingTab(false)
-          return
-        }
-        setPageState('loading')
-        setPageError(null)
-        await new Promise((r) => setTimeout(r, AFTER_RELOAD_WAIT_MS))
-        const pollResponse = await pollPageState(
-          AFTER_RELOAD_POLL_INTERVAL_MS,
-          AFTER_RELOAD_POLL_MAX_ATTEMPTS,
-        )
-        setRefreshingTab(false)
-        if (pollResponse?.ok === true) {
-          setPageState(pollResponse.payload)
-          setPageError(null)
-        } else {
           setPageState(null)
-          setPageError(pollResponse?.ok === false ? pollResponse.error : 'no_response')
+          setPageError('no_response')
         }
+        /* When reload succeeds, tab will fire onUpdated(complete) and reFetchFromTabReady() runs. */
       },
     )
   }
