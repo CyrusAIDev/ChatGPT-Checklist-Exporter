@@ -277,6 +277,8 @@ function App() {
 
   const activeItems = checklist?.items.filter((i) => !i.archived).sort((a, b) => a.order - b.order) ?? []
   const archivedItems = checklist?.items.filter((i) => i.archived).sort((a, b) => a.order - b.order) ?? []
+  const completedCount = activeItems.filter((i) => i.checked).length
+  const totalCount = activeItems.length
 
   return (
     <div className="sidepanel">
@@ -300,6 +302,11 @@ function App() {
               Reset checklist
             </button>
           </div>
+          {totalCount > 0 && (
+            <p className="progress-summary" aria-live="polite">
+              {completedCount} of {totalCount} completed
+            </p>
+          )}
           {mergeSummary && (
             <p className="merge-summary">
               Matched: {mergeSummary.matched}, added: {mergeSummary.added}, archived: {mergeSummary.archived}
