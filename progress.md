@@ -1,16 +1,16 @@
 # Progress
 
 **Sprint:** Premium Polish Sprint  
-**Overall:** 17% `▓░░░░░░░░░` (P0 done)
+**Overall:** 33% `▓▓░░░░░░░░` (P0–P1 done)
 
-**Current Phase:** Phase P1 — Panel Shell and Header
+**Current Phase:** Phase P2 — Actions, Checklist Rows, and Progress Feel
 
-**Current Focus:** improve panel shell, header hierarchy, top spacing, and section rhythm without changing behavior
+**Current Focus:** primary vs secondary action hierarchy, checklist row spacing, checked-state styling, subtle progress summary
 
 ## Polish Phase Checklist
 
 - [x] Phase P0 — Freeze and Visual Audit
-- [ ] Phase P1 — Panel Shell and Header
+- [x] Phase P1 — Panel Shell and Header
 - [ ] Phase P2 — Actions, Checklist Rows, and Progress Feel
 - [ ] Phase P3 — States and Messages
 - [ ] Phase P4 — Archived and Reset Polish
@@ -19,6 +19,7 @@
 ## Completed
 
 - P0: Freeze and visual audit; boundary documented below
+- P1: Panel shell and header — CSS variables (spacing, typography, color); PanelHeader with title + supporting line; section rhythm; variables applied to states/archived/dialog
 
 ## In Progress
 
@@ -26,7 +27,7 @@
 
 ## Next
 
-- P1: panel shell and header polish (spacing, title/supporting text, CSS variables)
+- P2: actions and checklist rows (button hierarchy, row spacing, progress feel)
 
 ## Blockers
 

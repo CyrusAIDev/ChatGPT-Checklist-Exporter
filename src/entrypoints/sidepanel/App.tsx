@@ -6,6 +6,7 @@ import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/par
 import { mergeChecklist } from '../../lib/merge/merge-checklist'
 import type { MergeSummary } from '../../lib/merge/merge-checklist'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
+import { PanelHeader } from '../../components/PanelHeader'
 
 type PageStateStatus = PageStatePayload | null | 'loading'
 type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
@@ -199,7 +200,7 @@ function App() {
   if (pageState === 'loading') {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-loading">Loading…</p>
       </div>
     )
@@ -208,7 +209,7 @@ function App() {
   if (pageError === 'no_tab') {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-unsupported">Open a saved ChatGPT conversation in this window, then open the panel again.</p>
       </div>
     )
@@ -217,7 +218,7 @@ function App() {
   if (pageError === 'no_response') {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-unsupported">Couldn’t read this page The tab may still be loading or the extension was just reloaded.</p>
         <button type="button" className="btn-primary" onClick={loadPageState}>Retry</button>
       </div>
@@ -227,7 +228,7 @@ function App() {
   if (pageError === 'not_chatgpt') {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-unsupported">This extension works only on ChatGPT. Open a conversation at chatgpt.com.</p>
       </div>
     )
@@ -236,7 +237,7 @@ function App() {
   if (pageState === null) {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-unsupported">Open a saved ChatGPT conversation, then open this panel.</p>
       </div>
     )
@@ -245,7 +246,7 @@ function App() {
   if (!pageState.supported) {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-unsupported">This isn’t a saved conversation. Use a URL like chatgpt.com/c/...</p>
       </div>
     )
@@ -254,7 +255,7 @@ function App() {
   if (pageState.isGenerating) {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-info">Wait until ChatGPT finishes responding before creating or merging a checklist.</p>
         <p className="state-no-content">Then you can create or update your checklist from the complete message.</p>
       </div>
@@ -268,7 +269,7 @@ function App() {
   if (!hasAssistantContent) {
     return (
       <div className="sidepanel">
-        <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+        <PanelHeader />
         <p className="state-no-content">Conversation found, but there’s no assistant message yet. Scroll to the latest reply or send a message.</p>
       </div>
     )
@@ -279,7 +280,7 @@ function App() {
 
   return (
     <div className="sidepanel">
-      <header className="sidepanel-header"><h1>Living Checklist</h1></header>
+      <PanelHeader />
       {error && <p className="state-error">{error}</p>}
       {infoMessage && <p className="state-info">{infoMessage}</p>}
       {!checklist ? (
