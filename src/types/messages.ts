@@ -19,3 +19,8 @@ export type GetPageStateForActiveTabRequest = { type: 'GET_PAGE_STATE_FOR_ACTIVE
 export type GetPageStateForActiveTabResponse =
   | { ok: true; payload: PageStatePayload }
   | { ok: false; error: 'not_chatgpt' | 'no_tab' | 'no_response' }
+
+/** Side panel asks background to reload the active tab (e.g. after no_response). Only reloads if tab is ChatGPT. */
+export type ReloadActiveTabRequest = { type: 'RELOAD_ACTIVE_TAB' }
+
+export type ReloadActiveTabResponse = { ok: true } | { ok: false; error: string }

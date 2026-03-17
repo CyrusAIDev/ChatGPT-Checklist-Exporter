@@ -54,15 +54,50 @@
   color: var(--text);
 }
 
+.sidepanel .state-card {
+  padding: 1rem;
+  background: #fafafa;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.sidepanel .state-card p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sidepanel .state-card p.state-loading,
+.sidepanel .state-card p.state-unsupported,
+.sidepanel .state-card p.state-no-content {
+  color: var(--text-muted-strong);
+}
+
+.sidepanel .state-card p.state-info {
+  color: var(--text-muted);
+}
+
+.sidepanel .state-card p:last-child,
+.sidepanel .state-card .state-actions:last-child {
+  margin-bottom: 0;
+}
+
+.sidepanel .state-card .state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 .sidepanel p.state-loading {
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.875rem;
   margin: 0;
 }
 
 .sidepanel p.state-unsupported,
 .sidepanel p.state-no-content {
-  color: #555;
+  color: var(--text-muted-strong);
   font-size: 0.875rem;
   margin: 0;
   line-height: 1.5;

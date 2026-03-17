@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ChecklistRecord } from '../../types/checklist'
-import type { PageStatePayload, GetPageStateForActiveTabResponse } from '../../types/messages'
+import type { PageStatePayload, GetPageStateForActiveTabResponse, ReloadActiveTabResponse } from '../../types/messages'
 import { getChecklist, setChecklist, deleteChecklist } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
 import { mergeChecklist } from '../../lib/merge/merge-checklist'
@@ -55,6 +55,7 @@ function App() {
   const [mergeSummary, setMergeSummary] = useState<MergeSummary | null>(null)
   const [archivedCollapsed, setArchivedCollapsed] = useState(true)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
+  const [refreshingTab, setRefreshingTab] = useState(false)
 
   const loadPageState = () => {
     setPageState('loading')
@@ -184,6 +185,25 @@ function App() {
     }
   }
 
+  const handleRefreshPage = () => {
+    setRefreshingTab(true)
+    const fallback = setTimeout(() => setRefreshingTab(false), 3000)
+    chrome.runtime.sendMessage(
+      { type: 'RELOAD_ACTIVE_TAB' },
+      (response: ReloadActiveTabResponse | undefined) => {
+        clearTimeout(fallback)
+        if (response?.ok === true) {
+          setTimeout(() => {
+            loadPageState()
+            setRefreshingTab(false)
+          }, 1500)
+        } else {
+          setRefreshingTab(false)
+        }
+      },
+    )
+  }
+
   const handleResetClick = () => setResetConfirmOpen(true)
   const handleResetCancel = () => setResetConfirmOpen(false)
   const handleResetConfirm = async () => {
@@ -201,7 +221,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-loading">Loading…</p>
+        <div className="state-card">
+          <p className="state-loading">Loading…</p>
+        </div>
       </div>
     )
   }
@@ -210,7 +232,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-unsupported">Open a saved ChatGPT conversation in this window, then open the panel again.</p>
+        <div className="state-card">
+          <p className="state-unsupported">Open a saved ChatGPT conversation in this window, then open the panel again.</p>
+        </div>
       </div>
     )
   }
@@ -219,8 +243,18 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-unsupported">Couldn’t read this page The tab may still be loading or the extension was just reloaded.</p>
-        <button type="button" className="btn-primary" onClick={loadPageState}>Retry</button>
+        <div className="state-card">
+          <p className="state-unsupported">Couldn’t read the page. The tab may still be loading or the extension was just reloaded.</p>
+          <p className="state-unsupported" style={{ marginBottom: 0 }}>Refresh the ChatGPT tab, then try again—or use Retry below.</p>
+          <div className="state-actions">
+            <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
+              {refreshingTab ? 'Refreshing…' : 'Refresh page'}
+            </button>
+            <button type="button" className="btn-secondary" onClick={loadPageState} disabled={refreshingTab}>
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -229,7 +263,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-unsupported">This extension works only on ChatGPT. Open a conversation at chatgpt.com.</p>
+        <div className="state-card">
+          <p className="state-unsupported">This extension works only on ChatGPT. Open a conversation at chatgpt.com.</p>
+        </div>
       </div>
     )
   }
@@ -238,7 +274,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-unsupported">Open a saved ChatGPT conversation, then open this panel.</p>
+        <div className="state-card">
+          <p className="state-unsupported">Open a saved ChatGPT conversation, then open this panel.</p>
+        </div>
       </div>
     )
   }
@@ -247,7 +285,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-unsupported">This isn’t a saved conversation. Use a URL like chatgpt.com/c/...</p>
+        <div className="state-card">
+          <p className="state-unsupported">This isn’t a saved conversation. Use a URL like chatgpt.com/c/...</p>
+        </div>
       </div>
     )
   }
@@ -256,8 +296,10 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-info">Wait until ChatGPT finishes responding before creating or merging a checklist.</p>
-        <p className="state-no-content">Then you can create or update your checklist from the complete message.</p>
+        <div className="state-card">
+          <p className="state-info">Wait until ChatGPT finishes responding before creating or merging a checklist.</p>
+          <p className="state-no-content" style={{ marginBottom: 0 }}>Then create or update your checklist from the complete message.</p>
+        </div>
       </div>
     )
   }
@@ -270,7 +312,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <p className="state-no-content">Conversation found, but there’s no assistant message yet. Scroll to the latest reply or send a message.</p>
+        <div className="state-card">
+          <p className="state-no-content">Conversation found, but there’s no assistant message yet. Scroll to the latest reply or send a message.</p>
+        </div>
       </div>
     )
   }

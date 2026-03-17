@@ -1,18 +1,18 @@
 # Progress
 
 **Sprint:** Premium Polish Sprint  
-**Overall:** 50% `▓▓▓░░░░░░░` (P0–P2 done)
+**Overall:** 67% `▓▓▓▓░░░░░░` (P0–P3 done)
 
-**Current Phase:** Phase P3 — States and Messages
+**Current Phase:** Phase P4 — Archived and Reset Polish
 
-**Current Focus:** unify state presentation (loading, unsupported, retry, wait, etc.); implement refresh/retry recovery (clearer recovery path when detection fails until tab refresh)
+**Current Focus:** archived section presentation, reset placement and destructive clarity, reset dialog polish
 
 ## Polish Phase Checklist
 
 - [x] Phase P0 — Freeze and Visual Audit
 - [x] Phase P1 — Panel Shell and Header
 - [x] Phase P2 — Actions, Checklist Rows, and Progress Feel
-- [ ] Phase P3 — States and Messages
+- [x] Phase P3 — States and Messages
 - [ ] Phase P4 — Archived and Reset Polish
 - [ ] Phase P5 — Final Polish QA and Cleanup
 
@@ -21,6 +21,7 @@
 - P0: Freeze and visual audit; boundary documented below
 - P1: Panel shell and header — CSS variables (spacing, typography, color); PanelHeader with title + supporting line; section rhythm; variables applied to states/archived/dialog
 - P2: Actions and checklist rows — stronger primary button; destructive isolated (margin-left: auto); row spacing and checkbox/text alignment; checked state uses --text-muted; subtle “X of Y completed” progress summary
+- P3: States and messages — unified state-card treatment for loading, unsupported, no_response, not_chatgpt, null, unsupported, generating, no assistant; short clear copy; refresh/retry recovery: no_response shows “Refresh page” (reloads active ChatGPT tab) + Retry, recommend refresh in copy; no new permissions
 
 ## In Progress
 
@@ -28,7 +29,7 @@
 
 ## Next
 
-- P3: states and messages (and **refresh/retry recovery**: clearer recovery path when panel doesn’t detect page until tab refresh — recommend refresh, keep Retry, optional “Refresh page” for active ChatGPT tab; no auto-refresh, no new permissions)
+- P4: archived and reset polish
 
 ## Blockers
 

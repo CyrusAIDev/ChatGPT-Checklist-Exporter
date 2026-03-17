@@ -2,6 +2,7 @@ import type {
   GetPageStateForActiveTabRequest,
   GetPageStateForActiveTabResponse,
   PageStatePayload,
+  ReloadActiveTabResponse,
 } from '../types/messages'
 
 const CHATGPT_ORIGIN = 'https://chatgpt.com'
@@ -16,10 +17,32 @@ export default defineBackground(() => {
 
   chrome.runtime.onMessage.addListener(
     (
-      message: GetPageStateForActiveTabRequest,
+      message: GetPageStateForActiveTabRequest | { type: 'RELOAD_ACTIVE_TAB' },
       _sender: chrome.runtime.MessageSender,
-      sendResponse: (response: GetPageStateForActiveTabResponse) => void,
+      sendResponse: (response: GetPageStateForActiveTabResponse | ReloadActiveTabResponse) => void,
     ) => {
+      if (message.type === 'RELOAD_ACTIVE_TAB') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          const tab = tabs[0]
+          if (!tab || tab.id == null || !tab.url) {
+            sendResponse({ ok: false, error: 'no_tab' })
+            return
+          }
+          try {
+            const url = new URL(tab.url)
+            if (url.origin !== CHATGPT_ORIGIN) {
+              sendResponse({ ok: false, error: 'not_chatgpt' })
+              return
+            }
+            chrome.tabs.reload(tab.id)
+            sendResponse({ ok: true })
+          } catch {
+            sendResponse({ ok: false, error: 'invalid_url' })
+          }
+        })
+        return true
+      }
+
       if (message.type !== 'GET_PAGE_STATE_FOR_ACTIVE_TAB') return false
 
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
