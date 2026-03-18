@@ -1,111 +1,58 @@
 # Progress
 
-**Sprint:** Premium Polish Sprint  
-**Overall:** Polish phases complete; one reliability bug fixed post-P5
-
-**Current Phase:** Recovery bug fix (post-P5)
-
-**Current Focus:** Retry/Refresh recovery must work without panel reopen; panel must recover automatically when active ChatGPT tab becomes ready
-
-## Polish Phase Checklist
-
-- [x] Phase P0 — Freeze and Visual Audit
-- [x] Phase P1 — Panel Shell and Header
-- [x] Phase P2 — Actions, Checklist Rows, and Progress Feel
-- [x] Phase P3 — States and Messages
-- [x] Phase P4 — Archived and Reset Polish
-- [x] Phase P5 — Final Polish QA and Cleanup
-- [ ] Recovery bug — Retry/Refresh recovery without click-away-and-back (in progress)
+**Progress bar:** `[##---] 25%`
+**Current phase:** P2 — Checklist View and Action Hierarchy
+**Current focus:** Primary/secondary/destructive hierarchy, checklist scanability, row spacing.
 
 ## Completed
-
-- P0: Freeze and visual audit; boundary documented below
-- P1: Panel shell and header — CSS variables (spacing, typography, color); PanelHeader with title + supporting line; section rhythm; variables applied to states/archived/dialog
-- P2: Actions and checklist rows — stronger primary button; destructive isolated (margin-left: auto); row spacing and checkbox/text alignment; checked state uses --text-muted; subtle “X of Y completed” progress summary
-- P3: States and messages — unified state-card treatment for loading, unsupported, no_response, not_chatgpt, null, unsupported, generating, no assistant; short clear copy; refresh/retry recovery: no_response shows “Refresh page” (reloads active ChatGPT tab) + Retry, recommend refresh in copy; no new permissions
-- P4: Archived and reset — archived section: card-style block with label “Archived”, clearer toggle (“N items” / “Hide”), focus-visible; separator between primary action and Reset; reset dialog: calmer backdrop, border, spacing, explicit button order
-- P5: Recovery and conversation UX fixes — (1) Refresh/Retry recovery: Retry and Refresh page now poll for page state so the panel recovers without closing/reopening; (2) Conversation-changed state: when checklist is for another conversation, show dedicated state with “Open original conversation” (navigates active tab to that conversation); golden-qa and progress updated
+- working MVP exists
+- core merge/storage/checklist model is locked
+- execution docs are locked
+- scope guardrails are locked
+- P0 baseline lock
+- P1 brand surface and visual tokens
 
 ## In Progress
-
-- Recovery bug fix: panel must subscribe to real tab lifecycle (tabs.onUpdated(complete), tabs.onActivated) so Refresh page leads to automatic recovery when tab is ready; Retry must feel fast; no click-away-and-back required
+- premium brand / polish sprint
+- checklist view and action hierarchy
 
 ## Next
-
-- Mark recovery bug complete in this checklist once QA confirms; then sprint can be considered fully done
+- P3 states, archive, and reset
+- P4 ChatGPT-first relevance and ship pass
+- P5 final QA and stop
 
 ## Blockers
-
 - none
 
-## P0 Audit: UI vs Logic Boundary
+## Decisions locked
+- ChatGPT-first, not broad productivity suite
+- one living checklist per conversation
+- local-first deterministic core stays
+- merge/storage/conversation identity stay protected
+- premium = clarity, hierarchy, calmness, readability, trust
+- product name is provisional during this sprint
+- first paid AI action is later, likely assistive, not central
+- build order: polish sprint -> polished MVP ship -> library -> one paid AI action
 
-**Files safe for UI polish (presentation only):**
-- `src/entrypoints/sidepanel/App.tsx` — structure, classNames, copy; do not change state shape, handlers, or data flow
-- `src/styles/sidepanel.css` — all styles (variables, spacing, typography, buttons, states, archived, dialog)
-- `src/components/ResetConfirmDialog.tsx` — markup and classNames only
-- `src/entrypoints/sidepanel/main.tsx` — entry; leave as-is unless adding a global style import
+## Scope rejected
+- full task manager
+- workspace expansion
+- broad AI suite
+- backend-heavy work
+- cloud sync
+- team features
+- due dates / priorities / tags
+- drag and drop
+- popup/options work
+- multiple premium features at once
+- broad architecture refactors
 
-**Files to leave alone (business logic / MVP behavior):**
-- `src/lib/merge/*` — merge-checklist, fuzzy-match
-- `src/lib/storage/*` — checklist-repo, storage-guards, storage-keys
-- `src/lib/chatgpt/*` — parse-checklist, extract-latest-assistant-message, conversation, normalize-item
-- `src/types/*` — checklist, messages
-- `src/entrypoints/chatgpt.content.ts` — content script
-- `src/entrypoints/background.ts` — messaging
-
-**Where polish will happen (by phase):**
-- **P1:** `.sidepanel`, `.sidepanel-header`, `h1`, top padding, section rhythm, optional CSS variables
-- **P2:** `.header-actions`, `.btn-*`, `.checklist-list`, `.checklist-item`, `.item-checked`, optional progress summary
-- **P3:** `.state-loading`, `.state-unsupported`, `.state-error`, `.state-info`, `.state-empty`, `.state-no-content`, merge summary, Retry button placement
-- **P4:** `.archived-section`, `.archived-toggle`, `.archived-list`, `.reset-dialog-backdrop`, ResetConfirmDialog styles
-- **P5:** Final pass, tests, build, dead-code cleanup if safe
-
-## MVP Behavior To Protect
-
-Do not break:
-- conversation detection
-- create checklist
-- persistence
-- merge latest
-- wait-until-finished while ChatGPT is generating
-- archived behavior
-- no-op merge / already up to date
-- reset confirmation
-- unsupported / non-saved / no-list states
-
-## Design Direction Locked
-
-- one-column side panel
-- calm, premium, focused UI
-- inspired by Todoist clarity, Superlist polish, Any.do friendliness
-- stronger visual hierarchy
-- cleaner spacing
-- better typography
-- clearer button hierarchy
-- calmer state cards
-- cleaner archived section
-- subtle progress feel only if it stays uncluttered
-
-## Scope Rejected For This Sprint
-
-- checklist library
-- multiple checklists
-- AI features
-- backend
-- billing
-- integrations
-- popup / options page
-- task-manager expansion
-- broad architecture rewrite
-
-## Future Compatibility To Preserve
-
-Do not block:
-- checklist library across conversations
-- use of saved checklists while browsing other sites
-- one paid AI action for cleanup / organization / expansion
-
-## Do Not Build
-
-Do not add features outside the current polish phase. Do not broaden scope. Do not touch core logic unless fixing a real bug.
+## Resume rule for a new Cursor chat
+1. Read `@prd.md`
+2. Read `@technical-spec.md`
+3. Read `@build-plan.md`
+4. Read `@progress.md`
+5. Read `@golden-qa.md` if present
+6. Complete exactly one phase
+7. Update this file
+8. Create a git checkpoint

@@ -1,8 +1,11 @@
 export function PanelHeader() {
   return (
     <header className="sidepanel-header">
-      <h1 className="header-title">Living Checklist</h1>
-      <p className="header-support">Track progress from your conversation.</p>
+      <p className="header-eyebrow">For ChatGPT</p>
+      <h1 className="header-title">Living checklist</h1>
+      <p className="header-support">
+        From the latest assistant message. Merge when the plan updates.
+      </p>
     </header>
   )
 }

@@ -448,7 +448,7 @@ function App() {
       {infoMessage && <p className="state-info">{infoMessage}</p>}
       {!checklist ? (
         <div className="state-empty">
-          <p>No checklist yet. Create one from the latest assistant message.</p>
+          <p>No checklist yet. Capture from the latest reply.</p>
           <button type="button" className="btn-primary" onClick={handleCreateChecklist} disabled={busy}>
             {busy ? 'Creating…' : 'Create checklist'}
           </button>
