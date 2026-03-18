@@ -1,8 +1,8 @@
 # Progress
 
-**Progress bar:** `[##---] 25%`
-**Current phase:** P2 — Checklist View and Action Hierarchy
-**Current focus:** Primary/secondary/destructive hierarchy, checklist scanability, row spacing.
+**Progress bar:** `[###--] 40%`
+**Current phase:** P3 — States, Archive, and Reset
+**Current focus:** Unify non-happy-path states; archive and reset polish.
 
 ## Completed
 - working MVP exists
@@ -11,13 +11,13 @@
 - scope guardrails are locked
 - P0 baseline lock
 - P1 brand surface and visual tokens
+- P2 checklist view and action hierarchy
 
 ## In Progress
 - premium brand / polish sprint
-- checklist view and action hierarchy
+- states, archive, reset
 
 ## Next
-- P3 states, archive, and reset
 - P4 ChatGPT-first relevance and ship pass
 - P5 final QA and stop
 

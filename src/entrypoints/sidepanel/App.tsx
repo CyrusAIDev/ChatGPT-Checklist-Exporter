@@ -12,6 +12,9 @@ import { mergeChecklist } from '../../lib/merge/merge-checklist'
 import type { MergeSummary } from '../../lib/merge/merge-checklist'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
 import { PanelHeader } from '../../components/PanelHeader'
+import { ChecklistActionBar } from '../../components/ChecklistActionBar'
+import { ChecklistActiveList } from '../../components/ChecklistActiveList'
+import { ChecklistMetaStrip } from '../../components/ChecklistMetaStrip'
 
 type PageStateStatus = PageStatePayload | null | 'loading'
 type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
@@ -455,39 +458,17 @@ function App() {
         </div>
       ) : (
         <div className="checklist-view">
-          <div className="header-actions">
-            <button type="button" className="btn-primary" onClick={handleMergeLatest} disabled={busy}>
-              {busy ? 'Merging…' : 'Merge latest'}
-            </button>
-            <span className="header-actions-sep" aria-hidden="true" />
-            <button type="button" className="btn-destructive" onClick={handleResetClick} disabled={busy}>
-              Reset checklist
-            </button>
-          </div>
-          {totalCount > 0 && (
-            <p className="progress-summary" aria-live="polite">
-              {completedCount} of {totalCount} completed
-            </p>
-          )}
-          {mergeSummary && (
-            <p className="merge-summary">
-              Matched: {mergeSummary.matched}, added: {mergeSummary.added}, archived: {mergeSummary.archived}
-            </p>
-          )}
-          <ul className="checklist-list">
-            {activeItems.map((item) => (
-              <li key={item.id} className="checklist-item">
-                <label className="checklist-item-row">
-                  <input
-                    type="checkbox"
-                    checked={item.checked}
-                    onChange={() => handleToggle(item.id)}
-                  />
-                  <span className={`item-text ${item.checked ? 'item-checked' : ''}`}>{item.text}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
+          <ChecklistActionBar
+            busy={busy}
+            onMergeLatest={handleMergeLatest}
+            onResetClick={handleResetClick}
+          />
+          <ChecklistMetaStrip
+            completedCount={completedCount}
+            totalCount={totalCount}
+            mergeSummary={mergeSummary}
+          />
+          <ChecklistActiveList items={activeItems} onToggle={handleToggle} />
           {archivedItems.length > 0 && (
             <div className="archived-section">
               <div className="archived-section-header">
