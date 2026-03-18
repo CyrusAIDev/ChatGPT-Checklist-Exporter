@@ -1,188 +1,89 @@
-# Golden QA Checklist
+# Golden QA
 
-This file is the final test contract for the premium polish sprint.
-
-Use it to validate that polish work improves the experience without breaking the MVP.
+Use this to stop polish work from breaking the MVP.
 
 ## Rules
-
-- test from the user’s point of view
-- prefer real interaction over theoretical inspection
-- preserve current MVP behavior
-- do not accept visual polish that weakens clarity or reliability
+- test from the user point of view
+- prefer real flows over theory
 - do not add scope during QA
+- if core behavior regresses, stop and fix it before more polish
 
-## Core Functional QA
+## Critical user flows
 
-### 1. Saved conversation detection
-- Open a real `chatgpt.com/c/...` conversation
-- Open the side panel
-- Confirm the panel detects the conversation correctly
-
-Pass:
-- no wrong unsupported state
-- no confusing error state
-- panel feels stable
-
-### 2. Create checklist
-- Ask ChatGPT for a bullet or numbered plan
-- Open side panel
-- Click **Create checklist**
+### 1. Create checklist
+- open a saved `chatgpt.com/c/...` conversation
+- generate a structured plan
+- open side panel
+- create checklist
 
 Pass:
 - checklist appears
 - rows are readable
 - primary action is obvious
-- no broken state transition
 
-### 3. Persistence
-- Check 2–3 items
-- Reload the tab
-- Reopen the side panel
+### 2. Persist checked state
+- check a few items
+- reload the tab
+- reopen panel
 
 Pass:
 - checklist remains
 - checked items remain checked
-- no duplicate or reset state
 
-### 4. Wait while ChatGPT is generating
-- Keep panel open
-- Ask ChatGPT to revise the plan
-- While ChatGPT is still responding, inspect the panel
-
-Pass:
-- Create/Merge are blocked or unavailable
-- panel clearly tells the user to wait
-- no partial content is merged
-
-### 5. Merge latest
-- After ChatGPT finishes, click **Merge latest**
+### 3. Merge revised plan
+- ask ChatGPT to revise the plan
+- wait until generation finishes
+- merge latest
 
 Pass:
-- unchanged items stay checked
-- safe minor wording changes stay checked
-- new items appear unchecked
-- removed items move to archived
-- nothing obviously wrong or duplicated
+- matched items keep checked state
+- new items appear
+- removed items move to archive
+- no duplicates
 
-### 6. No-op merge
-- Click **Merge latest** again without a new revision
+### 4. No-op merge
+- merge again without a new revision
 
 Pass:
-- “Already up to date” appears
+- clear “already up to date” feedback
 - no corruption
-- no duplicate items
-- no confusing state
+- no duplicate rows
 
-### 7. Archived section
-- Expand archived after a merge that removed items
+### 5. Archived section
+- expand archive after a merge that removed items
 
 Pass:
-- archived is collapsed by default
-- archived feels secondary
+- archive is secondary
 - archived items are readable
-- archived does not visually compete with active list
+- archive does not visually compete with active items
 
-### 8. Reset
-- Click **Reset checklist**
-- Cancel once
-- Then confirm reset
+### 6. Reset
+- click reset
+- cancel
+- click reset again
+- confirm
 
 Pass:
-- cancel keeps everything
-- confirm removes only this conversation checklist
-- reset remains clearly destructive
+- cancel changes nothing
+- confirm clears only this conversation checklist
+- destructive action is clear
 
-### 9. Unsupported / wrong page states
+### 7. Unsupported / non-ready states
 Test:
-- chatgpt.com home or unsaved chat
-- non-ChatGPT website
+- non-ChatGPT page
+- unsaved ChatGPT page
+- generating state
+- no assistant content state
 
 Pass:
-- messages are clear
-- states are visually distinct
-- no misleading conversation-ready UI appears
+- message is short
+- next action is clear
+- UI still feels calm and coherent
 
-### 9b. Conversation-changed state (wrong conversation)
-When the checklist is for conversation A but the active tab is on conversation B:
-
-Pass:
-- panel shows a clear “wrong conversation” state (e.g. “This checklist is for a different conversation”)
-- **Open original conversation** button is present and navigates the active tab to the checklist’s conversation
-- no checklist library or multiple-checklist scope is added
-
-### 10. Retry / no-response recovery
-Where possible:
-- open panel after extension reload or during flaky content-script availability
-
-Pass:
-- panel does not fail silently
-- retry path is clear
-- recovery language is understandable
-- **Retry** or **Refresh page** actually recovers the panel (fresh page state is fetched and UI updates) without the user having to close and reopen the side panel
-- recovery must not require closing or reopening the panel
-- after **Refresh page**, the panel must recover automatically when the ChatGPT tab has finished loading (no click-away-and-back)
-
-## Premium UI QA
-
-### 11. Header quality
-Pass:
-- top area feels intentional
-- title/supporting text hierarchy is clear
-- panel looks anchored, not generic
-
-### 12. Action hierarchy
-Pass:
-- primary action is immediately obvious
-- secondary actions are clearly secondary
-- reset is visually isolated and destructive
-
-### 13. Checklist readability
-Pass:
-- rows have enough breathing room
-- checkbox and text alignment feel clean
-- wrapped text stays readable
-- completed items remain legible
-
-### 14. State clarity
-Pass:
-- loading, unsupported, wait, info, retry, and error states feel visually related but distinct
-- user can tell what to do next quickly
-- panel avoids wall-of-text feeling
-
-### 15. Progress feel
-Pass:
-- any progress summary feels useful and subtle
-- no dashboard clutter
-- does not distract from the checklist itself
-
-### 16. Calmness
-Pass:
-- UI feels premium, not flashy
-- spacing is consistent
-- visual noise is low
-- panel feels like a serious paid product
-
-## Regression Guardrails
-
-Fail QA if any of these happen:
-- conversation detection becomes less reliable
+## Fail immediately if
+- conversation detection gets weaker
+- persistence breaks
 - merge logic changes unexpectedly
-- persistence weakens
+- archive behavior gets confusing
 - reset becomes unclear
-- archived becomes confusing
-- primary action becomes harder to find
-- visual polish adds clutter
-- current MVP behavior breaks
-
-## Cursor Usage Rule
-
-At the end of each polish phase:
-1. run tests/build required by the phase
-2. check affected items in this QA file
-3. update `progress.md`
-4. commit a checkpoint
-
-At the end of the full polish sprint:
-- run the full checklist in this file
-- do not mark the sprint complete until all critical items pass
+- the panel looks prettier but is harder to use

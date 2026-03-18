@@ -1,260 +1,218 @@
-# Chosen Stack
+# Technical Spec — Premium Polish Sprint
 
-Keep the current stack:
+## Primary rule
+Protect the working core. Improve presentation and small product-facing behavior only.
 
-- WXT
-- React
-- TypeScript
-- plain CSS
-- Vitest
+## Protected code areas
+Do not casually rewrite these:
+- `src/lib/merge/*`
+- `src/lib/storage/*`
+- `src/lib/chatgpt/parse-checklist.ts`
+- `src/lib/chatgpt/normalize-item.ts`
+- `src/lib/chatgpt/extract-latest-assistant-message.ts`
+- `src/types/checklist.ts`
 
-# Why This Stack
+These files define the actual MVP and are the highest regression risk.
 
-The current stack is already correct for the product and already implemented. This sprint is about premium polish, not stack changes.
+## Allowed change areas
+Safe primary change areas:
+- `src/entrypoints/sidepanel/App.tsx`
+- `src/components/*`
+- `src/styles/sidepanel.css`
+- `src/entrypoints/sidepanel/*`
+- `public/*` branding assets
 
-The best path is:
-- keep business logic stable
-- improve the presentation layer
-- make only small UI-facing code cleanup changes when clearly useful
+Limited change areas:
+- `src/entrypoints/background.ts`
+- `src/types/messages.ts`
 
-# Sprint Goal
+Only touch limited areas if required for:
+- clearer ChatGPT-first behavior
+- cleaner panel relevance
+- recovery reliability
+- future seam preservation
 
-Refine the side panel UI so it feels premium, calm, readable, and intentional without changing the core MVP behavior.
-
-# Non-Goals for This Sprint
-
-Do not build:
-- checklist library
-- AI actions
-- backend
-- billing
-- integrations
-- popup
-- options page
-- manual task editing
-- drag and drop
-- due dates / priorities / tags
-- task-manager expansion
-- broad merge/storage refactors
-
-# What Can Change
-
+## UI architecture cleanup allowed
 Allowed:
-- side panel layout improvements
-- typography and spacing improvements
-- action hierarchy improvements
-- state card improvements
-- empty/error/info/wait state presentation improvements
-- archived section presentation improvements
-- subtle progress indicator
-- small presentational component extraction
-- CSS variable cleanup
-- small App.tsx cleanup if it reduces UI risk
+- split large sidepanel UI into small presentational components
+- move render-only chunks out of `App.tsx`
+- extract repeated state-card UI
+- extract checklist list / archive / action bar UI
+- centralize copy strings if it reduces duplication
 
 Not allowed:
-- changing core storage behavior
-- changing core merge behavior
-- changing checklist identity model
-- changing permissions
-- adding backend assumptions into current MVP flow
+- introducing a large state machine library
+- changing the core data flow
+- moving business logic out of current core files without a bug-driven reason
+- broad folder re-org
 
-# UI Architecture Rules
-
-Business logic stays stable.
-
-Presentation can be cleaned up.
-
-Preferred direction:
-- keep `App.tsx` as orchestrator
-- extract tiny presentational components only if they reduce UI complexity
-- do not create a giant component tree
-- do not move business logic into style components
-- keep state derivation simple and local
-
-Recommended presentational pieces if useful:
+## Recommended component extraction ceiling
+Keep it small.
+Good targets:
 - `PanelHeader`
-- `StateCard`
+- `StatusCard`
 - `ActionBar`
-- `ChecklistSection`
-- `ProgressSummary`
+- `ChecklistList`
 - `ArchivedSection`
+- `ResetConfirmDialog`
 
-These are optional. Only extract them if they make the UI easier to maintain.
+Rule:
+- `App.tsx` can still own orchestration state
+- extracted components should be mostly presentational
+- business rules stay near current handlers
 
-# Design System Rules
+## Styling and token rules
+Use one deliberate token system in `sidepanel.css`.
 
-Use a very small styling system.
+### Required token groups
+- app background
+- panel/surface
+- subtle surface
+- strong text
+- muted text
+- border
+- accent
+- accent hover/pressed
+- danger
+- focus ring
+- radius
+- spacing scale
+- type scale
+- shadow (minimal)
 
-Introduce or clean up:
-- CSS variables for spacing
-- CSS variables for colors
-- CSS variables for radius
-- CSS variables for typography scale
-- CSS variables for border/surface tones
-- consistent button classes
-- consistent state-card classes
+### Starting palette
+Use this unless contrast fails:
+- background: warm neutral
+- panel: white
+- subtle surface: very light neutral
+- text strong: deep ink/slate
+- text muted: cool gray
+- accent: muted evergreen
+- danger: muted brick
 
-Keep it small and local.
+Suggested first-pass values:
+- `--bg-app: #f6f4ef`
+- `--bg-panel: #ffffff`
+- `--bg-subtle: #f3f4f6`
+- `--text-strong: #18202a`
+- `--text-muted: #5d6773`
+- `--border: #e7e1d7`
+- `--accent: #2f6b57`
+- `--accent-hover: #255847`
+- `--danger: #a14a3b`
+- `--focus: #2f6b57`
 
-Do not add:
-- Tailwind
-- UI kits
-- CSS frameworks
-- animation libraries
+### Typography rules
+No custom font loading.
+Use system stack only.
 
-# Visual Rules
+Use only:
+- title
+- section/meta
+- body
+- micro/meta
 
-## Layout
-- one-column panel
-- strong top section
-- clear vertical rhythm
-- consistent section spacing
-- avoid cramped stacking
+Weight discipline:
+- 600 for titles
+- 500 for actions/section labels
+- 400 for body
 
-## Header
-Should communicate:
-- product title or checklist context
-- short supporting line
-- optional subtle progress summary
+Do not add decorative type.
 
-Must feel anchored and premium.
+### Spacing rules
+- prefer larger vertical rhythm over dense packing
+- keep one-column layout
+- list rows should breathe
+- state cards should not feel cramped
+- avoid tiny gaps and avoid oversized empty holes
 
-## Action Hierarchy
-- primary action: strongest visual weight
-- secondary actions: lighter
-- destructive action: isolated and clearly dangerous
+## Button hierarchy rules
+Exactly three levels:
+- primary
+- secondary
+- destructive
 
-## Checklist Rows
-- more breathing room
-- checkbox alignment cleaned up
-- text should wrap well
-- checked state should be de-emphasized but still readable
-- long items should remain scannable
+Rules:
+- only one obvious primary action per surface
+- destructive action must be visually separated
+- no ghost buttons unless clearly secondary and text-light
+- loading/disabled states must remain readable
 
-## State Presentation
-Create a consistent pattern for:
+## State-handling rules
+Keep the existing state model.
+Do not invent new product states unless needed for clarity.
+
+Required treatment:
 - loading
-- unsupported
-- not saved conversation
+- unsupported page / no conversation
 - no response / retry
-- extraction failure
-- waiting for ChatGPT to finish
+- generating
 - no assistant content
-- no parseable checklist
-- already up to date
+- no checklist yet
+- merge success / already up to date
+- wrong conversation
+- reset confirmation
 
-Each should feel intentional and visually consistent.
+Rules:
+- every state must answer “what is happening” and “what should I do next”
+- copy must be short
+- error surfaces must not feel alarming unless action is destructive
+- info surfaces must be calmer than errors
 
-## Archived Section
-- secondary surface
-- collapsed by default
-- clearer section label
-- visually distinct from active checklist
-- should feel “removed from latest plan,” not “trash”
+## Accessibility and usability constraints
+Must keep or add:
+- keyboard operable buttons
+- visible focus states
+- proper button semantics
+- checkbox label clickability
+- readable contrast
+- `aria-live` only where actually useful
+- no motion dependency
 
-## Progress Feel
-Allowed only if subtle.
+Do not:
+- hide important meaning by color alone
+- rely on hover for critical behavior
+- make archive/reset hard to understand
 
-Recommended:
-- completed count text such as `3 of 9 completed`
-- optional thin progress bar
-- no dashboard widgets
-- no analytics feeling
+## ChatGPT-first behavior rule
+Current product stays centered on ChatGPT conversations.
 
-# Accessibility and Usability Rules
+During this sprint:
+- optimize create/merge flows for saved ChatGPT conversations
+- do not add browsing-time checklist workflows yet
+- do not use copy that implies the product will never work elsewhere
 
-- preserve clear contrast
-- preserve readable font sizes
-- preserve obvious button states
-- preserve keyboard focus visibility
-- use plain language in messages
-- do not rely on color alone to signal meaning
-- keep states low-cognitive-load
+Good copy pattern:
+- “Open a saved ChatGPT conversation to create or update a checklist.”
 
-# Code Quality Rules
+Avoid copy pattern:
+- “This extension is only useful on ChatGPT.”
 
-- do not touch merge/storage logic unless required by a real bug
-- keep TypeScript strict
-- no dead code
-- no speculative abstractions for future AI/library work
-- no new dependency unless clearly justified
-- no broad refactors
-- no duplicate style patterns if a small shared pattern can solve it
-- avoid giant CSS sprawl; group styles by shell / states / checklist / dialog / buttons
+## Future compatibility rules
+Preserve clean seams for:
+- checklist library across conversations
+- use of saved checklists while browsing other sites
+- one paid AI action
 
-# Future Compatibility Rules
+Do this by:
+- keeping checklist records conversation-keyed
+- not hard-coding UI language around “only one place forever”
+- keeping sidepanel UI modular enough to later support a library surface
+- keeping AI as a later transform step on checklist content, not a core dependency
 
-This sprint must leave clean seams for:
+Do not build future features now.
 
-## Checklist library later
-The side panel should be polishable now without assuming only one future view forever.
-A future library view should be able to coexist with the current checklist view.
+## Testing rules
+Cursor should do as much verification as possible.
 
-## Paid AI action later
-The action area should eventually be able to host one optional premium action without redesigning the whole panel.
+Default:
+- run `npm run build` after each completed phase
+- run targeted tests when touching logic
+- run full `npm test` before closing the sprint
 
-Do not build either now. Just avoid painting the UI into a corner.
+Manual QA should stay minimal and high-value.
 
-# Testing Strategy
-
-## Required
-- run existing unit tests
-- run production build
-- manually test:
-  - create
-  - persist
-  - merge
-  - no-op merge
-  - waiting while ChatGPT generates
-  - reset
-  - unsupported/non-saved states
-  - retry/no-response recovery if applicable
-
-## Visual QA
-Check:
-- spacing consistency
-- primary action prominence
-- reset isolation
-- archived readability
-- state clarity
-- progress subtlety
-- no obvious visual clutter
-
-# Build Sequence
-
-## Phase P0 — Freeze and audit current MVP shell
-- verify current working behavior before polish
-- identify UI-only files to change
-- confirm business logic is untouched
-
-## Phase P1 — Panel shell and header polish
-- improve outer layout
-- improve header
-- improve section rhythm
-- improve general spacing and typography
-
-## Phase P2 — Actions and checklist readability
-- improve action hierarchy
-- improve checklist row spacing and readability
-- improve checked-state styling
-- add subtle progress summary if clean
-
-## Phase P3 — State polish
-- unify empty/error/info/wait state presentation
-- improve retry/no-response presentation
-- improve already-up-to-date presentation
-
-## Phase P4 — Archived and reset polish
-- improve archived section treatment
-- ensure reset remains clearly destructive and separate
-
-## Phase P5 — QA and cleanup
-- run tests/build
-- remove dead UI leftovers if safe
-- final visual QA
-- update progress.md
-- commit checkpoint
-
-# Definition of Done
-
-The panel should feel noticeably more premium without adding features, without changing the core product promise, and without reducing reliability.
+If local dependency state is broken because the uploaded repo contains stale `node_modules`:
+- do one clean reinstall
+- continue
+- do not turn dependency cleanup into a project

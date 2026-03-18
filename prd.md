@@ -1,165 +1,136 @@
-# Product Summary
+# PRD — Premium Polish Sprint
 
-This phase is a premium polish sprint for the existing MVP of Living Checklist for ChatGPT with Merge.
+## Product
+A calm premium execution layer for ChatGPT conversations.
 
-The product already works:
-- detects a saved ChatGPT conversation
-- creates one canonical checklist from the latest structured assistant output
-- preserves checked state locally
-- merges later revisions without wiping progress
-- archives removed items
-- supports destructive reset
+Working model:
+- one living checklist per conversation
+- local-first
+- deterministic merge
+- checked state preserved across revisions
+- removed items archived
+- reset supported
 
-This sprint improves how the product looks and feels without changing the core product scope or weakening the current functionality.
+## Who this is for
+Solo operator / builder / consultant who uses ChatGPT to create and revise plans, but does not want to manually re-copy tasks into another tool.
 
-# Target User
+## Core promise
+Turn the latest structured ChatGPT output into a living checklist that survives revisions.
 
-A solo ChatGPT-heavy operator who uses one conversation to create and revise a plan, then wants a calm, premium, easy-to-scan execution surface.
+## What premium means here
+Premium does **not** mean more features.
 
-# Core Problem
+Premium means:
+- clear hierarchy
+- calm spacing
+- readable rows
+- obvious primary action
+- polished empty/error/info states
+- trustworthy local behavior
+- coherent icon/copy/color system
+- no “AI-generated extension shell” feeling
 
-The MVP works, but the UI still feels like a functional extension shell instead of a polished paid product. The current experience needs stronger visual hierarchy, calmer states, better readability, and more confidence-inspiring interaction design.
+## Naming direction
+Provisional only.
+- Use a short ownable product name
+- Keep “for ChatGPT” as descriptor, not primary brand
+- Do not lock final name in code or copy during this sprint
 
-# Product Promise
+## Current source of truth
+The current repo is implementation truth.
+Protect the working MVP. Improve the shell around it.
 
-Keep the current MVP behavior intact, but make it feel premium, trustworthy, clear, and pleasant enough that a user would believe it is a paid-quality extension.
+## Sprint goal
+Make the current MVP feel paid-worthy and ship-worthy without changing the core product model.
 
-# Polish Sprint Scope
+At the end of this sprint, the product should feel:
+- calmer
+- more intentional
+- easier to scan
+- more trustworthy
+- more brand-coherent
+- ready for screenshots and early paid validation
 
-- improve side panel visual hierarchy
-- improve spacing and typography
-- improve header clarity
-- improve action hierarchy
-- improve checklist row readability
-- improve state presentation:
-  - unsupported
-  - loading
-  - retry / no response
-  - waiting for ChatGPT to finish
-  - no assistant content
-  - no parseable checklist
-  - already up to date
-  - extraction failure
-- improve archived section presentation
-- add a small progress feel if it can be done without clutter
-- preserve current create / merge / reset / persistence behavior
-- preserve current architecture unless a tiny UI refactor is clearly helpful
+## What must not break
+- conversation-based checklist identity
+- create checklist from latest assistant output
+- merge latest without losing matched checked state
+- archiving of removed items
+- reset flow
+- local-first storage
+- deterministic behavior
+- ChatGPT-first side panel flow
 
-# User Flow
+## In scope now
+- premium visual system
+- cleaner header and panel shell
+- button hierarchy
+- checklist row polish
+- archived section polish
+- empty/error/info/loading state polish
+- copy cleanup
+- light UI component extraction
+- minimal behavior tweaks that improve product relevance or shipping confidence
 
-1. User opens a saved ChatGPT conversation.
-2. User opens the side panel.
-3. The panel clearly communicates the current state:
-   - unsupported
-   - ready to create
-   - checklist exists
-   - waiting for ChatGPT
-4. If no checklist exists, the user sees a clear premium empty state and one obvious action: **Create checklist**.
-5. If a checklist exists, the user sees:
-   - a clearer header
-   - a subtle sense of progress
-   - obvious primary action
-   - readable checklist rows
-   - archived items in a cleaner secondary section
-6. When a merge happens, the result feels calm and understandable.
-7. Reset remains destructive, clear, and visually separated.
+## Out of scope now
+Do not build:
+- task manager features
+- workspace features
+- team features
+- cloud sync
+- backend-heavy systems
+- billing
+- multiple premium AI actions
+- library UI
+- popup/options scope
+- drag and drop
+- due dates / priorities / tags
+- random refactors
+- merge/storage rewrites
 
-# Functional Requirements
+## Product direction to encode
+This is:
+- ChatGPT-first
+- conversation-first
+- execution-first
+- calm and local-first
 
-- do not change the core storage model
-- do not change the core merge rules
-- do not weaken persistence
-- do not remove any current MVP states
-- preserve create checklist flow
-- preserve merge latest flow
-- preserve reset confirmation flow
-- preserve archived behavior
-- preserve supported / unsupported detection behavior
-- preserve wait-until-finished behavior while ChatGPT is generating
-- any new progress indicator must be derived from existing checklist data only
-- visual improvements must not require backend, auth, analytics, or new product features
+This is **not**:
+- ChatGPT-only forever as philosophy
+- a general browser productivity suite
+- a broad AI platform
 
-# Non-Goals
+## Future compatibility to preserve
+Do not build these now, but do not block them:
 
-- no checklist library yet
-- no multiple checklists per conversation
-- no AI features yet
-- no backend or cloud sync
-- no billing or payment flows
-- no integrations
-- no popup
-- no options page
-- no manual task editing UI
-- no task-manager expansion
-- no redesign of merge logic
-- no architecture rewrite
+### 1. Checklist library across conversations
+Future shape:
+- local-first list of saved checklists
+- access to saved checklists outside the active conversation
+- usable while browsing other sites
 
-# UX Requirements
+### 2. One paid AI action
+Likely first candidate:
+- AI Clean Up
 
-- the UI must feel calm, premium, and easy to scan
-- the side panel remains one-column
-- the primary action must always be obvious
-- reset must remain clearly destructive
-- archived must remain clearly secondary
-- the current state must be visually obvious without reading too much text
-- the empty state must feel intentional, not blank
-- checklist rows must be more comfortable to scan and check off
-- completed progress should be visible in a subtle way
-- the panel should feel polished, not flashy
-- do not add clutter
-- do not make the panel look like a mini web app dashboard
+But do not hard-lock it if later library/design work reveals a better first paid assistive action.
 
-# Technical Constraints
+Rule:
+- AI stays assistive, not central
 
-- keep Chrome extension architecture as-is unless a very small UI refactor is needed
-- no new permissions unless absolutely required
-- no backend
-- no network requests
-- no analytics
-- no new dependencies unless clearly worth it
-- prefer CSS variables, small presentational components, and simple structure over UI frameworks
-- keep performance light
+## Success bar for this sprint
+The sprint is successful when:
+- the product feels like a focused premium extension
+- the MVP still works exactly as expected
+- all major user states feel deliberate
+- screenshots look credible
+- Cursor has not introduced feature creep
 
-# Visual Direction
-
-Use a design direction inspired by:
-- Todoist-level clarity
-- Superlist-level polish
-- Any.do-level friendliness
-
-Translate that into:
-- cleaner spacing
-- stronger typography hierarchy
-- clearer section surfaces
-- stronger action hierarchy
-- calmer state panels
-- more intentional empty and error visuals
-- better archived section treatment
-- subtle progress feel without clutter
-
-# Future Compatibility
-
-This polish sprint must not block future work on:
-- checklist library across conversations
-- using saved checklists while browsing other sites
-- one paid AI action for checklist cleanup / organization / expansion
-
-Do not build those features now. Only preserve clean seams for them.
-
-# Acceptance Criteria
-
-- the current MVP functionality still works end-to-end
-- the side panel looks more premium and deliberate
-- the main state of the panel is obvious at a glance
-- the checklist is easier to scan and interact with
-- create / merge / reset remain reliable
-- loading / retry / wait states are clearer
-- archived feels intentional and secondary
-- the UI polish does not introduce scope creep
-- no banned scope is added
-
-# Final Constraint Reminder
-
-This is a polish sprint, not a feature sprint.
-
-The goal is to make the current MVP feel premium without changing the core product scope, without breaking current behavior, and without building future features early.
+## Stop condition
+Stop polishing when:
+- hierarchy is clear
+- all key states are coherent
+- the list is easy to scan
+- the archive feels deliberate
+- the product looks shippable
+- further work would mostly be taste, not product value
