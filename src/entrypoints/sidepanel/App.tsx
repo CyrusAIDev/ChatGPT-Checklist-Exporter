@@ -12,6 +12,8 @@ import { mergeChecklist } from '../../lib/merge/merge-checklist'
 import type { MergeSummary } from '../../lib/merge/merge-checklist'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
 import { PanelHeader } from '../../components/PanelHeader'
+import { PanelStateCard } from '../../components/PanelStateCard'
+import { ArchivedChecklistSection } from '../../components/ArchivedChecklistSection'
 import { ChecklistActionBar } from '../../components/ChecklistActionBar'
 import { ChecklistActiveList } from '../../components/ChecklistActiveList'
 import { ChecklistMetaStrip } from '../../components/ChecklistMetaStrip'
@@ -201,22 +203,27 @@ function App() {
     try {
       const response = await fetchFreshPageState()
       if (!response.ok) {
-        const msg = response.error === 'no_response' ? 'Couldn’t read the page. Try refreshing the tab.' : response.error === 'no_tab' ? 'No active tab. Open a conversation and try again.' : 'This page is not supported.'
+        const msg =
+          response.error === 'no_response'
+            ? 'Can’t read this tab. Refresh or try again.'
+            : response.error === 'no_tab'
+              ? 'No active tab. Open a saved thread and retry.'
+              : 'This page isn’t supported here.'
         setError(msg)
         return
       }
       const fresh = response.payload
       if (!fresh.supported || !fresh.conversationId) {
-        setError('This isn’t a saved conversation.')
+        setError('Save the chat first (URL needs /c/…).')
         return
       }
       if (fresh.isGenerating) {
-        setInfoMessage('Wait until ChatGPT finishes responding.')
+        setInfoMessage('Wait until the reply finishes, then try again.')
         return
       }
       const parsed = parseLatestMessage(fresh)
       if (parsed.length === 0) {
-        setError('No list items found in the latest message.')
+        setError('No list found in the latest assistant message.')
         return
       }
       const record = createChecklistRecord(fresh.conversationId, parsed)
@@ -239,17 +246,22 @@ function App() {
     try {
       const response = await fetchFreshPageState()
       if (!response.ok) {
-        const msg = response.error === 'no_response' ? 'Couldn’t read the page. Try refreshing the tab.' : response.error === 'no_tab' ? 'No active tab. Open a conversation and try again.' : 'This page is not supported.'
+        const msg =
+          response.error === 'no_response'
+            ? 'Can’t read this tab. Refresh or try again.'
+            : response.error === 'no_tab'
+              ? 'No active tab. Open a saved thread and retry.'
+              : 'This page isn’t supported here.'
         setError(msg)
         return
       }
       const fresh = response.payload
       if (!fresh.supported || !fresh.conversationId) {
-        setError('This isn’t a saved conversation.')
+        setError('Save the chat first (URL needs /c/…).')
         return
       }
       if (fresh.isGenerating) {
-        setInfoMessage('Wait until ChatGPT finishes responding.')
+        setInfoMessage('Wait until the reply finishes, then try again.')
         return
       }
       if (fresh.conversationId !== checklist.conversationId) {
@@ -257,12 +269,12 @@ function App() {
       }
       const parsed = parseLatestMessage(fresh)
       if (parsed.length === 0) {
-        setError('No list items found in the latest message.')
+        setError('No list found in the latest assistant message.')
         return
       }
       const result = mergeChecklist(checklist, parsed)
       if (result === null) {
-        setInfoMessage('Already up to date.')
+        setInfoMessage('Already matches the latest reply.')
         return
       }
       await setChecklist(result.record)
@@ -325,9 +337,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-loading">Loading…</p>
-        </div>
+        <PanelStateCard tone="muted">
+          <p className="state-body">Checking this tab…</p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -336,9 +348,11 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-unsupported">Open a saved ChatGPT conversation in this window, then open the panel again.</p>
-        </div>
+        <PanelStateCard>
+          <p className="state-body">
+            Open a saved ChatGPT thread in this window, then open the panel again.
+          </p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -347,18 +361,23 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-unsupported">Couldn’t read the page. The tab may still be loading or the extension was just reloaded.</p>
-          <p className="state-unsupported" style={{ marginBottom: 0 }}>Refresh the ChatGPT tab, then try again—or use Retry below.</p>
-          <div className="state-actions">
-            <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
-              {refreshingTab ? 'Refreshing…' : 'Refresh page'}
-            </button>
-            <button type="button" className="btn-secondary" onClick={handleRetry} disabled={refreshingTab}>
-              Retry
-            </button>
-          </div>
-        </div>
+        <PanelStateCard
+          title="Can’t read this tab"
+          actions={
+            <>
+              <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
+                {refreshingTab ? 'Refreshing…' : 'Refresh page'}
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleRetry} disabled={refreshingTab}>
+                Retry
+              </button>
+            </>
+          }
+        >
+          <p className="state-body">
+            Still loading, or the extension just reloaded. Refresh the tab or use Retry.
+          </p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -367,9 +386,12 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-unsupported">This extension works only on ChatGPT. Open a conversation at chatgpt.com.</p>
-        </div>
+        <PanelStateCard>
+          <p className="state-body">
+            This panel is for saved ChatGPT conversations. Open <span className="state-nowrap">chatgpt.com</span> when
+            you’re ready.
+          </p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -378,9 +400,12 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-unsupported">Open a saved ChatGPT conversation, then open this panel.</p>
-        </div>
+        <PanelStateCard>
+          <p className="state-body">
+            Open a saved conversation (<span className="state-nowrap">chatgpt.com/c/…</span>) to create or update a
+            checklist.
+          </p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -389,9 +414,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-unsupported">This isn’t a saved conversation. Use a URL like chatgpt.com/c/...</p>
-        </div>
+        <PanelStateCard>
+          <p className="state-body">Save the chat first so the address includes /c/…</p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -400,10 +425,11 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-info">Wait until ChatGPT finishes responding before creating or merging a checklist.</p>
-          <p className="state-no-content" style={{ marginBottom: 0 }}>Then create or update your checklist from the complete message.</p>
-        </div>
+        <PanelStateCard title="Reply in progress" tone="hold">
+          <p className="state-body state-body--secondary">
+            Wait for the answer to finish. Then capture or merge from that message.
+          </p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -416,9 +442,9 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-no-content">Conversation found, but there’s no assistant message yet. Scroll to the latest reply or send a message.</p>
-        </div>
+        <PanelStateCard>
+          <p className="state-body">No assistant message in view. Scroll to the latest reply.</p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -427,14 +453,16 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <div className="state-card">
-          <p className="state-unsupported">This checklist is for a different conversation. Open that conversation to use it.</p>
-          <div className="state-actions">
+        <PanelStateCard
+          title="Different conversation"
+          actions={
             <button type="button" className="btn-primary" onClick={handleOpenOriginalConversation}>
-              Open original conversation
+              Open that chat
             </button>
-          </div>
-        </div>
+          }
+        >
+          <p className="state-body">This checklist belongs to another thread. Switch chats to continue.</p>
+        </PanelStateCard>
       </div>
     )
   }
@@ -447,15 +475,27 @@ function App() {
   return (
     <div className="sidepanel">
       <PanelHeader />
-      {error && <p className="state-error">{error}</p>}
-      {infoMessage && <p className="state-info">{infoMessage}</p>}
-      {!checklist ? (
-        <div className="state-empty">
-          <p>No checklist yet. Capture from the latest reply.</p>
-          <button type="button" className="btn-primary" onClick={handleCreateChecklist} disabled={busy}>
-            {busy ? 'Creating…' : 'Create checklist'}
-          </button>
+      {error ? (
+        <div className="state-banner state-banner--error" role="alert">
+          <p className="state-banner-text">{error}</p>
         </div>
+      ) : null}
+      {infoMessage ? (
+        <div className="state-banner state-banner--info" aria-live="polite">
+          <p className="state-banner-text">{infoMessage}</p>
+        </div>
+      ) : null}
+      {!checklist ? (
+        <PanelStateCard
+          title="No checklist yet"
+          actions={
+            <button type="button" className="btn-primary" onClick={handleCreateChecklist} disabled={busy}>
+              {busy ? 'Creating…' : 'Capture from latest reply'}
+            </button>
+          }
+        >
+          <p className="state-body state-body--secondary">Pulls tasks from the latest assistant message in this chat.</p>
+        </PanelStateCard>
       ) : (
         <div className="checklist-view">
           <ChecklistActionBar
@@ -469,30 +509,11 @@ function App() {
             mergeSummary={mergeSummary}
           />
           <ChecklistActiveList items={activeItems} onToggle={handleToggle} />
-          {archivedItems.length > 0 && (
-            <div className="archived-section">
-              <div className="archived-section-header">
-                <span className="archived-section-label">Archived</span>
-                <button
-                  type="button"
-                  className="archived-toggle"
-                  onClick={() => setArchivedCollapsed(!archivedCollapsed)}
-                  aria-expanded={!archivedCollapsed}
-                >
-                  {archivedCollapsed ? '▼' : '▲'} {archivedCollapsed ? `${archivedItems.length} item${archivedItems.length !== 1 ? 's' : ''}` : 'Hide'}
-                </button>
-              </div>
-              {!archivedCollapsed && (
-                <ul className="checklist-list archived-list">
-                  {archivedItems.map((item) => (
-                    <li key={item.id} className="checklist-item archived-item">
-                      <span className="item-text item-archived">{item.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+          <ArchivedChecklistSection
+            items={archivedItems}
+            collapsed={archivedCollapsed}
+            onToggleCollapsed={() => setArchivedCollapsed(!archivedCollapsed)}
+          />
           {resetConfirmOpen && (
             <div className="reset-dialog-backdrop">
               <ResetConfirmDialog onConfirm={handleResetConfirm} onCancel={handleResetCancel} />

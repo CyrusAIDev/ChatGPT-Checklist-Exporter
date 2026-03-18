@@ -1,8 +1,8 @@
 # Progress
 
-**Progress bar:** `[###--] 40%`
-**Current phase:** P3 — States, Archive, and Reset
-**Current focus:** Unify non-happy-path states; archive and reset polish.
+**Progress bar:** `[####-] 55%`
+**Current phase:** P4 — ChatGPT-First Relevance and Ship Pass
+**Current focus:** Relevance, copy cleanup, ship confidence.
 
 ## Completed
 - working MVP exists
@@ -12,13 +12,13 @@
 - P0 baseline lock
 - P1 brand surface and visual tokens
 - P2 checklist view and action hierarchy
+- P3 states, archive, and reset
 
 ## In Progress
 - premium brand / polish sprint
-- states, archive, reset
+- ChatGPT-first relevance and ship pass
 
 ## Next
-- P4 ChatGPT-first relevance and ship pass
 - P5 final QA and stop
 
 ## Blockers
