@@ -1,4 +1,8 @@
 import type { PageStatePayload } from '../../types/messages'
+import {
+  chooseAssistantSource,
+  type AssistantSourceCandidate,
+} from './choose-assistant-source'
 import { getConversationIdFromPathname } from './conversation'
 
 /**
@@ -72,23 +76,97 @@ function isVisible(el: HTMLElement): boolean {
 }
 
 /**
+ * Same-turn grouping: assistant nodes inside the same <article> share a key.
+ * One article per message → normal threads never share a key across turns.
+ * Multiple bodies in one article (version UI) → same key, chooser can disambiguate by selected.
+ */
+function getTurnGroupKey(el: HTMLElement): string | null {
+  const article = el.closest('article')
+  if (!article) return null
+  const articles = Array.from(document.querySelectorAll('article'))
+  const idx = articles.indexOf(article as HTMLElement)
+  return idx >= 0 ? `article:${idx}` : null
+}
+
+function assistantSourceDevLoggingEnabled(): boolean {
+  if (typeof import.meta !== 'undefined') {
+    const env = (import.meta as { env?: { DEV?: boolean } }).env
+    if (env?.DEV === true) return true
+  }
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') return true
+  return false
+}
+
+function previewText(s: string, max = 80): string {
+  const t = s.replace(/\s+/g, ' ').trim()
+  return t.length <= max ? t : `${t.slice(0, max)}…`
+}
+
+function logAssistantSourceDebug(
+  rows: Array<{
+    el: HTMLElement
+    assistantDomIndex: number
+    text: string
+    visible: boolean
+    selected: boolean
+    turnGroupKey: string | null
+  }>,
+): void {
+  if (!assistantSourceDevLoggingEnabled()) return
+  const tail = rows.slice(-5)
+  console.log('[Living Checklist] assistant source debug (last up to 5 contentful, DOM order):')
+  for (const row of tail) {
+    const rect = row.el.getBoundingClientRect()
+    const article = row.el.closest('article')
+    const articles = Array.from(document.querySelectorAll('article'))
+    const artIdx = article ? articles.indexOf(article as HTMLElement) : -1
+    const testIds: string[] = []
+    let p: HTMLElement | null = row.el
+    for (let d = 0; d < 6 && p; d++) {
+      const tid = p.getAttribute('data-testid')
+      if (tid) testIds.push(tid)
+      p = p.parentElement
+    }
+    const cls = row.el.className?.toString().slice(0, 120) ?? ''
+    console.log('[Living Checklist]', {
+      assistantDomIndex: row.assistantDomIndex,
+      preview: previewText(row.text),
+      rect: { top: rect.top, bottom: rect.bottom, height: rect.height },
+      visible: row.visible,
+      selected: row.selected,
+      turnGroupKey: row.turnGroupKey,
+      articleIndex: artIdx,
+      parentTestIds: testIds,
+      elClassSnippet: cls,
+    })
+  }
+}
+
+type ContentfulRow = {
+  el: HTMLElement
+  assistantDomIndex: number
+  text: string
+  candidates: string[]
+}
+
+/**
  * Extract page state: conversationId from URL, latest assistant message from DOM.
- * Uses the latest assistant reply (last in DOM order) as the source. Only sets
- * ambiguousResponseVersions when the latest turn itself has multiple visible/selected
- * candidates (e.g. ChatGPT version switcher for that reply), not when the
- * conversation simply has multiple assistant messages from earlier turns.
+ * Uses pure chooser rules: default last contentful assistant; ambiguity only for
+ * positively identified same-turn multi-body without a single selected winner.
  */
 export function extractLatestAssistantMessage(): PageStatePayload {
   const conversationId = getConversationIdFromPathname(window.location.pathname)
   const supported = conversationId !== null
 
   const assistantMessages = Array.from(document.querySelectorAll('[data-message-author-role="assistant"]')) as HTMLElement[]
-  const withContent: { el: HTMLElement; text: string; candidates: string[] }[] = []
-  for (const el of assistantMessages) {
+
+  const contentfulRows: ContentfulRow[] = []
+  for (let i = 0; i < assistantMessages.length; i++) {
+    const el = assistantMessages[i]
     const candidates = getTaskCandidatesFromMessage(el)
     const text = getLatestMessageText(el)
     if (candidates.length > 0 || text.length > 0) {
-      withContent.push({ el, text, candidates })
+      contentfulRows.push({ el, assistantDomIndex: i, text, candidates })
     }
   }
 
@@ -97,32 +175,40 @@ export function extractLatestAssistantMessage(): PageStatePayload {
   let chosenEl: HTMLElement | null = null
   let ambiguousResponseVersions = false
 
-  if (withContent.length === 0 && supported && assistantMessages.length > 0) {
+  if (contentfulRows.length === 0 && supported && assistantMessages.length > 0) {
     const last = assistantMessages[assistantMessages.length - 1]
     latestMessageText = getLatestMessageText(last)
     taskCandidates = getTaskCandidatesFromMessage(last)
     chosenEl = last
-  } else if (withContent.length >= 1) {
-    const tail = withContent.slice(-2)
-    const selected = tail.filter((w) => isSelectedOrActive(w.el))
-    const visible = tail.filter((w) => isVisible(w.el))
-    if (tail.length >= 2 && (visible.length > 1 || selected.length > 1)) {
-      ambiguousResponseVersions = true
-    } else if (selected.length === 1) {
-      const one = selected[0]
-      latestMessageText = one.text
-      taskCandidates = one.candidates
-      chosenEl = one.el
-    } else if (visible.length === 1) {
-      const one = visible[0]
-      latestMessageText = one.text
-      taskCandidates = one.candidates
-      chosenEl = one.el
-    } else {
-      const one = tail[tail.length - 1]
-      latestMessageText = one.text
-      taskCandidates = one.candidates
-      chosenEl = one.el
+  } else if (contentfulRows.length >= 1) {
+    const debugRows = contentfulRows.map((row) => ({
+      el: row.el,
+      assistantDomIndex: row.assistantDomIndex,
+      text: row.text,
+      visible: isVisible(row.el),
+      selected: isSelectedOrActive(row.el),
+      turnGroupKey: getTurnGroupKey(row.el),
+    }))
+    logAssistantSourceDebug(debugRows)
+
+    const chooserInput: AssistantSourceCandidate[] = contentfulRows.map((row) => ({
+      domIndex: row.assistantDomIndex,
+      hasTextContent: true,
+      visible: isVisible(row.el),
+      selected: isSelectedOrActive(row.el),
+      turnGroupKey: getTurnGroupKey(row.el),
+    }))
+
+    const choice = chooseAssistantSource(chooserInput)
+    ambiguousResponseVersions = choice.ambiguousResponseVersions
+
+    if (!ambiguousResponseVersions && choice.chosenCandidateIndex != null) {
+      const picked = contentfulRows[choice.chosenCandidateIndex]
+      if (picked) {
+        latestMessageText = picked.text
+        taskCandidates = picked.candidates
+        chosenEl = picked.el
+      }
     }
   }
 
