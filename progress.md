@@ -1,8 +1,8 @@
 # Progress
 
-**Progress bar:** `[####-] 55%`
-**Current phase:** P4 — ChatGPT-First Relevance and Ship Pass
-**Current focus:** Relevance, copy cleanup, ship confidence.
+**Progress bar:** `[#####] 70%`
+**Current phase:** P5 — Final QA and Stop
+**Current focus:** Golden QA pass; stop when shippable.
 
 ## Completed
 - working MVP exists
@@ -13,13 +13,14 @@
 - P1 brand surface and visual tokens
 - P2 checklist view and action hierarchy
 - P3 states, archive, and reset
+- P4 ChatGPT-first relevance and ship pass
 
 ## In Progress
 - premium brand / polish sprint
-- ChatGPT-first relevance and ship pass
+- final QA and stop
 
 ## Next
-- P5 final QA and stop
+- checklist library planning (after sprint)
 
 ## Blockers
 - none

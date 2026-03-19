@@ -375,7 +375,7 @@ function App() {
           }
         >
           <p className="state-body">
-            Still loading, or the extension just reloaded. Refresh the tab or use Retry.
+            Tab may still be loading, or the add-on was just reloaded. Refresh the tab or use Retry.
           </p>
         </PanelStateCard>
       </div>
@@ -388,8 +388,8 @@ function App() {
         <PanelHeader />
         <PanelStateCard>
           <p className="state-body">
-            This panel is for saved ChatGPT conversations. Open <span className="state-nowrap">chatgpt.com</span> when
-            you’re ready.
+            Right now this panel works with saved ChatGPT conversations. Open{' '}
+            <span className="state-nowrap">chatgpt.com</span> when you’re ready.
           </p>
         </PanelStateCard>
       </div>
@@ -415,7 +415,10 @@ function App() {
       <div className="sidepanel">
         <PanelHeader />
         <PanelStateCard>
-          <p className="state-body">Save the chat first so the address includes /c/…</p>
+          <p className="state-body">
+            Saved conversations use a URL like <span className="state-nowrap">chatgpt.com/c/…</span>. Save this chat
+            first.
+          </p>
         </PanelStateCard>
       </div>
     )
@@ -494,7 +497,9 @@ function App() {
             </button>
           }
         >
-          <p className="state-body state-body--secondary">Pulls tasks from the latest assistant message in this chat.</p>
+          <p className="state-body state-body--secondary">
+            Pulls tasks from the latest assistant message in this conversation.
+          </p>
         </PanelStateCard>
       ) : (
         <div className="checklist-view">
