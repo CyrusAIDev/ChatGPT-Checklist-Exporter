@@ -538,20 +538,22 @@ body,
   line-height: 1.5;
 }
 
+/* Warning note: informational only, not an action surface */
 .sidepanel .reset-dialog-risk {
   margin-bottom: var(--space-4);
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   background: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--danger);
+  border-radius: 0;
+  cursor: default;
 }
 
 .sidepanel .reset-dialog-risk-label {
   font-size: var(--type-micro);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--danger);
+  font-weight: 500;
+  color: var(--text-muted-strong);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .sidepanel .reset-dialog-actions {

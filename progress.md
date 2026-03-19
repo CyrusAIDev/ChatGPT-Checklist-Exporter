@@ -16,6 +16,7 @@
 - P4 ChatGPT-first relevance and ship pass
 - P4 hotfix: recovery flow (bounded retry, no-content recovery actions, tab-ready delay)
 - P5 final QA and stop (recovery UX: Retry → Check again secondary; build + tests pass)
+- micro ship-polish: reset dialog warning as non-interactive note (left-accent strip, no button affordance)
 
 ## In Progress
 - none
