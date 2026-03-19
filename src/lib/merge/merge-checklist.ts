@@ -5,9 +5,9 @@ import { findBestFuzzyMatch } from './fuzzy-match'
 
 export type MergeSummary = { matched: number; added: number; archived: number }
 
+/** Fingerprint includes order so reorder-only revisions trigger a merge. */
 function sourceFingerprint(parsed: ParsedItem[]): string {
-  const normalized = parsed.map((i) => normalizeItemText(i.text)).sort()
-  return normalized.join('\n')
+  return parsed.map((i) => normalizeItemText(i.text)).join('\n')
 }
 
 /**
@@ -29,6 +29,13 @@ export function mergeChecklist(
     .sort((a, b) => a.order - b.order)
   const oldNormalized = activeOld.map((i) => normalizeItemText(i.text))
   const usedOld = new Set<number>()
+  const archivedOld = existing.items.filter((i) => i.archived)
+  const archivedByNorm = new Map<string, ChecklistItem>()
+  for (const item of archivedOld) {
+    const norm = normalizeItemText(item.text)
+    if (!archivedByNorm.has(norm)) archivedByNorm.set(norm, item)
+  }
+  const usedArchivedIds = new Set<string>()
   const summary: MergeSummary = { matched: 0, added: 0, archived: 0 }
 
   const mergedActive: ChecklistItem[] = []
@@ -71,6 +78,20 @@ export function mergeChecklist(
       continue
     }
 
+    const archivedMatch = archivedByNorm.get(newNorm)
+    if (archivedMatch && !usedArchivedIds.has(archivedMatch.id)) {
+      usedArchivedIds.add(archivedMatch.id)
+      mergedActive.push({
+        ...archivedMatch,
+        text: p.text,
+        checked: archivedMatch.checked,
+        archived: false,
+        order,
+      })
+      summary.matched++
+      continue
+    }
+
     mergedActive.push({
       id: crypto.randomUUID(),
       text: p.text,
@@ -81,12 +102,12 @@ export function mergeChecklist(
     summary.added++
   }
 
-  const archivedItems: ChecklistItem[] = activeOld
+  const newlyArchived = activeOld
     .filter((_, i) => !usedOld.has(i))
     .map((i) => ({ ...i, archived: true }))
-  summary.archived = archivedItems.length
-
-  const allItems = [...mergedActive, ...archivedItems]
+  summary.archived = newlyArchived.length
+  const remainingArchived = archivedOld.filter((i) => !usedArchivedIds.has(i.id))
+  const allItems = [...mergedActive, ...newlyArchived, ...remainingArchived]
   const record: ChecklistRecord = {
     version: 1,
     conversationId: existing.conversationId,
