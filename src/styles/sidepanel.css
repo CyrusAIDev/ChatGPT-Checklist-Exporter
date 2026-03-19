@@ -541,7 +541,7 @@ body,
 /* Warning note: informational only, not an action surface */
 .sidepanel .reset-dialog-risk {
   margin-bottom: var(--space-4);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-3);
   background: var(--danger-bg);
   border-left: 3px solid var(--danger);
   border-radius: 0;
@@ -549,8 +549,8 @@ body,
 }
 
 .sidepanel .reset-dialog-risk-label {
-  font-size: var(--type-micro);
-  font-weight: 500;
+  font-size: var(--type-section);
+  font-weight: 600;
   color: var(--text-muted-strong);
   letter-spacing: 0;
   text-transform: none;
