@@ -1,8 +1,8 @@
 # Progress
 
-**Progress bar:** `[#####] 70%`
-**Current phase:** P4 hotfix — Recovery flow
-**Current focus:** Retry/refresh robust; no dead-end states.
+**Progress bar:** `[######] 100%`
+**Current phase:** Sprint complete
+**Current focus:** Checklist library planning (next milestone).
 
 ## Completed
 - working MVP exists
@@ -15,14 +15,13 @@
 - P3 states, archive, and reset
 - P4 ChatGPT-first relevance and ship pass
 - P4 hotfix: recovery flow (bounded retry, no-content recovery actions, tab-ready delay)
+- P5 final QA and stop (recovery UX: Retry → Check again secondary; build + tests pass)
 
 ## In Progress
-- premium brand / polish sprint
-- P4 hotfix verification
+- none
 
 ## Next
-- P5 final QA and stop (when recovery hotfix accepted)
-- checklist library planning (after sprint)
+- checklist library planning
 
 ## Blockers
 - none

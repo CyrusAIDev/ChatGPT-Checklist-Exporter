@@ -105,8 +105,8 @@ function App() {
     })
   }
 
-  /** Retry from no_response: poll until page state is available so recovery works without reopening panel. */
-  const handleRetry = () => {
+  /** Re-check page state without reload (bounded poll). Secondary recovery when Refresh is overkill. */
+  const handleCheckAgain = () => {
     setPageState('loading')
     setPageError(null)
     pollPageState(RECOVERY_POLL_INTERVAL_MS, RECOVERY_POLL_MAX_ATTEMPTS).then((response) => {
@@ -369,14 +369,14 @@ function App() {
               <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
                 {refreshingTab ? 'Refreshing…' : 'Refresh page'}
               </button>
-              <button type="button" className="btn-secondary" onClick={handleRetry} disabled={refreshingTab}>
-                Retry
+              <button type="button" className="btn-secondary" onClick={handleCheckAgain} disabled={refreshingTab}>
+                Check again
               </button>
             </>
           }
         >
           <p className="state-body">
-            Tab may still be loading, or the add-on was just reloaded. Refresh the tab or use Retry.
+            Tab may still be loading, or the add-on was just reloaded. Refresh the tab or use Check again.
           </p>
         </PanelStateCard>
       </div>
@@ -451,17 +451,17 @@ function App() {
           tone="info"
           actions={
             <>
-              <button type="button" className="btn-primary" onClick={handleRetry} disabled={refreshingTab}>
-                Retry
-              </button>
-              <button type="button" className="btn-secondary" onClick={handleRefreshPage} disabled={refreshingTab}>
+              <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
                 {refreshingTab ? 'Refreshing…' : 'Refresh page'}
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleCheckAgain} disabled={refreshingTab}>
+                Check again
               </button>
             </>
           }
         >
           <p className="state-body state-body--secondary">
-            The page may still be loading, or scroll to the latest reply. Use Retry or Refresh page to try again.
+            The page may still be loading, or scroll to the latest reply. Refresh page or Check again to try again.
           </p>
         </PanelStateCard>
       </div>
