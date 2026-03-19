@@ -19,6 +19,7 @@
 - micro ship-polish: reset dialog warning as non-interactive note (left-accent strip, no button affordance)
 - merge hardening: reorder-only triggers merge (order-preserving fingerprint); archived items can re-match and unarchive with identity/checked preserved
 - merge/source stabilization: no-op when merged result equivalent to existing (avoids meaningless merge summary); order-preserving fingerprint in create; multi-response handling (use selected/visible only, show “Choose a response version” when ambiguous)
+- source-selection hotfix: use latest assistant reply only; ambiguity only when latest turn has multiple visible/selected candidates
 
 ## In Progress
 - none
