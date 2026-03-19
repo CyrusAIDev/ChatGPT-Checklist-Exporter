@@ -27,8 +27,9 @@ const isDev = (): boolean =>
 const CHATGPT_ORIGIN = 'https://chatgpt.com'
 const PAGE_STATE_RETRY_ATTEMPTS = 3
 const PAGE_STATE_RETRY_DELAY_MS = 200
-const RECOVERY_POLL_INTERVAL_MS = 400
-const RECOVERY_POLL_MAX_ATTEMPTS = 20
+const RECOVERY_POLL_INTERVAL_MS = 500
+const RECOVERY_POLL_MAX_ATTEMPTS = 6
+const TAB_READY_DELAY_MS = 1800
 
 function fetchPageStateOnce(): Promise<GetPageStateForActiveTabResponse> {
   return new Promise((resolve) => {
@@ -156,8 +157,8 @@ function App() {
         chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
           const active = activeTabs[0]
           if (!active || active.id !== tabId) return
-          /* Brief delay so content script can inject after document complete. */
-          setTimeout(reFetchFromTabReady, 400)
+          /* Wait for ChatGPT to render before re-fetching; content script needs DOM ready. */
+          setTimeout(reFetchFromTabReady, TAB_READY_DELAY_MS)
         })
       })
     }
@@ -445,8 +446,23 @@ function App() {
     return (
       <div className="sidepanel">
         <PanelHeader />
-        <PanelStateCard>
-          <p className="state-body">No assistant message in view. Scroll to the latest reply.</p>
+        <PanelStateCard
+          title="No assistant message in view yet"
+          tone="info"
+          actions={
+            <>
+              <button type="button" className="btn-primary" onClick={handleRetry} disabled={refreshingTab}>
+                Retry
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleRefreshPage} disabled={refreshingTab}>
+                {refreshingTab ? 'Refreshing…' : 'Refresh page'}
+              </button>
+            </>
+          }
+        >
+          <p className="state-body state-body--secondary">
+            The page may still be loading, or scroll to the latest reply. Use Retry or Refresh page to try again.
+          </p>
         </PanelStateCard>
       </div>
     )
