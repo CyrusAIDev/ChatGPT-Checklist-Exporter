@@ -73,7 +73,10 @@ function isVisible(el: HTMLElement): boolean {
 
 /**
  * Extract page state: conversationId from URL, latest assistant message from DOM.
- * When multiple assistant responses exist, uses the single selected/visible one if unambiguous; otherwise sets ambiguousResponseVersions.
+ * Uses the latest assistant reply (last in DOM order) as the source. Only sets
+ * ambiguousResponseVersions when the latest turn itself has multiple visible/selected
+ * candidates (e.g. ChatGPT version switcher for that reply), not when the
+ * conversation simply has multiple assistant messages from earlier turns.
  */
 export function extractLatestAssistantMessage(): PageStatePayload {
   const conversationId = getConversationIdFromPathname(window.location.pathname)
@@ -99,26 +102,27 @@ export function extractLatestAssistantMessage(): PageStatePayload {
     latestMessageText = getLatestMessageText(last)
     taskCandidates = getTaskCandidatesFromMessage(last)
     chosenEl = last
-  } else if (withContent.length === 1) {
-    const one = withContent[0]
-    latestMessageText = one.text
-    taskCandidates = one.candidates
-    chosenEl = one.el
-  } else if (withContent.length > 1) {
-    const visible = withContent.filter((w) => isVisible(w.el))
-    const selected = withContent.filter((w) => isSelectedOrActive(w.el))
-    if (visible.length === 1) {
-      const one = visible[0]
-      latestMessageText = one.text
-      taskCandidates = one.candidates
-      chosenEl = one.el
+  } else if (withContent.length >= 1) {
+    const tail = withContent.slice(-2)
+    const selected = tail.filter((w) => isSelectedOrActive(w.el))
+    const visible = tail.filter((w) => isVisible(w.el))
+    if (tail.length >= 2 && (visible.length > 1 || selected.length > 1)) {
+      ambiguousResponseVersions = true
     } else if (selected.length === 1) {
       const one = selected[0]
       latestMessageText = one.text
       taskCandidates = one.candidates
       chosenEl = one.el
+    } else if (visible.length === 1) {
+      const one = visible[0]
+      latestMessageText = one.text
+      taskCandidates = one.candidates
+      chosenEl = one.el
     } else {
-      ambiguousResponseVersions = true
+      const one = tail[tail.length - 1]
+      latestMessageText = one.text
+      taskCandidates = one.candidates
+      chosenEl = one.el
     }
   }
 
