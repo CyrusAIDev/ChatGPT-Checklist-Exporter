@@ -438,6 +438,27 @@ function App() {
     )
   }
 
+  if (pageState.ambiguousResponseVersions) {
+    return (
+      <div className="sidepanel">
+        <PanelHeader />
+        <PanelStateCard
+          title="Choose a response version"
+          tone="info"
+          actions={
+            <button type="button" className="btn-primary" onClick={handleCheckAgain}>
+              Check again
+            </button>
+          }
+        >
+          <p className="state-body state-body--secondary">
+            ChatGPT is showing multiple reply versions. Select the one you want, then check again.
+          </p>
+        </PanelStateCard>
+      </div>
+    )
+  }
+
   const hasAssistantContent =
     (pageState.latestMessageText != null && pageState.latestMessageText.length > 0) ||
     (pageState.taskCandidates != null && pageState.taskCandidates.length > 0)

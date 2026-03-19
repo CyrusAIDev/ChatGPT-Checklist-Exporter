@@ -96,9 +96,9 @@ export function parseLatestMessage(payload: PageStatePayload): ParsedItem[] {
   return []
 }
 
+/** Order-preserving fingerprint so merge no-op matches create. */
 function simpleFingerprint(items: ParsedItem[]): string {
-  const normalized = items.map((i) => normalizeItemText(i.text)).sort()
-  return normalized.join('\n')
+  return items.map((i) => normalizeItemText(i.text)).join('\n')
 }
 
 function toChecklistItem(parsed: ParsedItem, order: number): ChecklistItem {

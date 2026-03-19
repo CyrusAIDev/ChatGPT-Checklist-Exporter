@@ -7,6 +7,8 @@ export type PageStatePayload = {
   taskCandidates: string[]
   /** True when the latest assistant message is still streaming/generating; do not create or merge. */
   isGenerating: boolean
+  /** True when multiple assistant response versions exist and one could not be chosen; do not guess. */
+  ambiguousResponseVersions?: boolean
 }
 
 /** Sent to content script to get fresh page state on demand. */

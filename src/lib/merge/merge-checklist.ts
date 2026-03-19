@@ -10,10 +10,29 @@ function sourceFingerprint(parsed: ParsedItem[]): string {
   return parsed.map((i) => normalizeItemText(i.text)).join('\n')
 }
 
+/** True if active items (order, normalized text, checked) and archived set are unchanged. */
+function recordsAreEquivalent(a: ChecklistRecord, b: ChecklistRecord): boolean {
+  const activeA = a.items.filter((i) => !i.archived).sort((x, y) => x.order - y.order)
+  const activeB = b.items.filter((i) => !i.archived).sort((x, y) => x.order - y.order)
+  if (activeA.length !== activeB.length) return false
+  for (let i = 0; i < activeA.length; i++) {
+    if (normalizeItemText(activeA[i].text) !== normalizeItemText(activeB[i].text)) return false
+    if (activeA[i].checked !== activeB[i].checked) return false
+  }
+  const archivedA = new Set(a.items.filter((i) => i.archived).map((i) => normalizeItemText(i.text)))
+  const archivedB = new Set(b.items.filter((i) => i.archived).map((i) => normalizeItemText(i.text)))
+  if (archivedA.size !== archivedB.size) return false
+  for (const n of archivedA) {
+    if (!archivedB.has(n)) return false
+  }
+  return true
+}
+
 /**
  * Merge new parsed source into existing checklist. Preserves matched item id and checked state;
  * updates display text to latest. Unmatched old active items become archived. New items added.
- * Order rebuilt to match source order. Returns null if new fingerprint equals existing (no-op).
+ * Order rebuilt to match source order. Returns null if new fingerprint equals existing or if
+ * the merged result is equivalent to existing (no-op).
  */
 export function mergeChecklist(
   existing: ChecklistRecord,
@@ -116,5 +135,6 @@ export function mergeChecklist(
     items: allItems,
   }
 
+  if (recordsAreEquivalent(existing, record)) return null
   return { record, summary }
 }

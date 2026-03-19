@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mergeChecklist } from '../../src/lib/merge/merge-checklist'
 import type { ChecklistRecord } from '../../src/types/checklist'
-import type { ParsedItem } from '../../src/lib/chatgpt/parse-checklist'
+import { createChecklistRecord, type ParsedItem } from '../../src/lib/chatgpt/parse-checklist'
 
 function record(items: Array<{ id: string; text: string; checked: boolean; archived?: boolean; order: number }>): ChecklistRecord {
   return {
@@ -31,6 +31,30 @@ describe('mergeChecklist', () => {
       { text: 'Task two', checked: false },
     ]
     const result = mergeChecklist(existing, newParsed)
+    expect(result).toBeNull()
+  })
+
+  it('returns null when merged result is equivalent to existing (e.g. fingerprint differed)', () => {
+    const existing = record([
+      { id: 'i1', text: 'Item A', checked: true, order: 0 },
+      { id: 'i2', text: 'Item B', checked: false, order: 1 },
+    ])
+    existing.sourceFingerprint = 'item b\nitem a'
+    const newParsed: ParsedItem[] = [
+      { text: 'Item A', checked: false },
+      { text: 'Item B', checked: false },
+    ]
+    const result = mergeChecklist(existing, newParsed)
+    expect(result).toBeNull()
+  })
+
+  it('no-op still works with order-preserving fingerprint after create', () => {
+    const parsed: ParsedItem[] = [
+      { text: 'First', checked: false },
+      { text: 'Second', checked: true },
+    ]
+    const existing = createChecklistRecord('c1', parsed)
+    const result = mergeChecklist(existing, parsed)
     expect(result).toBeNull()
   })
 
@@ -64,7 +88,28 @@ describe('mergeChecklist', () => {
     expect(out!.summary.archived).toBe(0)
   })
 
-  it('exact match preserves id and checked state', () => {
+  it('match preserves id and checked state when result would differ (e.g. text update)', () => {
+    const existing = record([
+      { id: 'i1', text: 'Do this and that', checked: true, order: 0 },
+      { id: 'i2', text: 'Do that', checked: false, order: 1 },
+    ])
+    const newParsed: ParsedItem[] = [
+      { text: 'Do this and that today', checked: false },
+      { text: 'Do that', checked: true },
+    ]
+    const out = mergeChecklist(existing, newParsed)
+    expect(out).not.toBeNull()
+    const active = out!.record.items.filter((i) => !i.archived).sort((a, b) => a.order - b.order)
+    expect(active[0].id).toBe('i1')
+    expect(active[0].checked).toBe(true)
+    expect(active[0].text).toBe('Do this and that today')
+    expect(active[1].id).toBe('i2')
+    expect(active[1].checked).toBe(false)
+    expect(out!.summary.matched).toBe(2)
+    expect(out!.summary.archived).toBe(0)
+  })
+
+  it('returns null when only source checked differs but we preserve local (equivalent result)', () => {
     const existing = record([
       { id: 'i1', text: 'Do this', checked: true, order: 0 },
       { id: 'i2', text: 'Do that', checked: false, order: 1 },
@@ -73,15 +118,8 @@ describe('mergeChecklist', () => {
       { text: 'Do this', checked: false },
       { text: 'Do that', checked: true },
     ]
-    const out = mergeChecklist(existing, newParsed)
-    expect(out).not.toBeNull()
-    const active = out!.record.items.filter((i) => !i.archived).sort((a, b) => a.order - b.order)
-    expect(active[0].id).toBe('i1')
-    expect(active[0].checked).toBe(true)
-    expect(active[1].id).toBe('i2')
-    expect(active[1].checked).toBe(false)
-    expect(out!.summary.matched).toBe(2)
-    expect(out!.summary.archived).toBe(0)
+    const result = mergeChecklist(existing, newParsed)
+    expect(result).toBeNull()
   })
 
   it('unmatched old active items become archived', () => {
