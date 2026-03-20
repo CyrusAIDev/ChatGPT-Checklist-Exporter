@@ -9,6 +9,9 @@ function record(items: Array<{ id: string; text: string; checked: boolean; archi
     conversationId: 'c1',
     sourceFingerprint: null,
     updatedAt: 0,
+    createdAt: 0,
+    sourceChatUrl: 'https://chatgpt.com/c/c1',
+    conversationLabel: null,
     items: items.map((i) => ({
       id: i.id,
       text: i.text,
@@ -249,5 +252,21 @@ describe('mergeChecklist', () => {
     expect(active[2].text).toBe('Implement settings page')
     expect(out!.summary.matched).toBe(2)
     expect(out!.summary.added).toBe(1)
+  })
+
+  it('preserves createdAt, sourceChatUrl, and conversationLabel on merge', () => {
+    const base = createChecklistRecord('c1', [{ text: 'One', checked: false }], {
+      sourceChatUrl: 'https://chatgpt.com/c/c1',
+      conversationLabel: 'Thread title',
+    })
+    const createdAt = base.createdAt
+    const out = mergeChecklist(base, [
+      { text: 'One', checked: false },
+      { text: 'Two', checked: false },
+    ])
+    expect(out).not.toBeNull()
+    expect(out!.record.createdAt).toBe(createdAt)
+    expect(out!.record.sourceChatUrl).toBe('https://chatgpt.com/c/c1')
+    expect(out!.record.conversationLabel).toBe('Thread title')
   })
 })

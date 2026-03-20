@@ -3,6 +3,12 @@ export type ChecklistRecord = {
   conversationId: string
   sourceFingerprint: string | null
   updatedAt: number
+  /** First save time; backfilled from updatedAt for legacy records. */
+  createdAt: number
+  /** Canonical ChatGPT thread URL (open in new tab). */
+  sourceChatUrl: string
+  /** Title from ChatGPT when captured; may be empty for older saves. */
+  conversationLabel: string | null
   items: ChecklistItem[]
 }
 

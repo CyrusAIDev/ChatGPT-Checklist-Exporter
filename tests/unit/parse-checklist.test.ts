@@ -68,6 +68,7 @@ describe('parseLatestMessage', () => {
       supported: true,
       latestMessageText: '- From text',
       taskCandidates: ['- From DOM'],
+      conversationTitle: null,
       isGenerating: false,
     }
     const result = parseLatestMessage(payload)
@@ -81,6 +82,7 @@ describe('parseLatestMessage', () => {
       supported: true,
       latestMessageText: '- A\n- B',
       taskCandidates: [],
+      conversationTitle: null,
       isGenerating: false,
     }
     const result = parseLatestMessage(payload)
@@ -93,6 +95,7 @@ describe('parseLatestMessage', () => {
       supported: true,
       latestMessageText: null,
       taskCandidates: [],
+      conversationTitle: null,
       isGenerating: false,
     }
     expect(parseLatestMessage(payload)).toEqual([])
@@ -117,5 +120,18 @@ describe('createChecklistRecord', () => {
     expect(record.items[1].text).toBe('B')
     expect(record.items[1].checked).toBe(true)
     expect(record.items[0].id).not.toBe(record.items[1].id)
+    expect(record.sourceChatUrl).toBe('https://chatgpt.com/c/conv-1')
+    expect(record.conversationLabel).toBeNull()
+    expect(record.createdAt).toBe(record.updatedAt)
+  })
+
+  it('stores label and URL from meta', () => {
+    const items = [{ text: 'A', checked: false }]
+    const record = createChecklistRecord('conv-1', items, {
+      sourceChatUrl: 'https://chatgpt.com/c/conv-1',
+      conversationLabel: 'Sprint plan',
+    })
+    expect(record.conversationLabel).toBe('Sprint plan')
+    expect(record.sourceChatUrl).toBe('https://chatgpt.com/c/conv-1')
   })
 })

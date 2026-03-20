@@ -1,5 +1,6 @@
 import type { ChecklistItem, ChecklistRecord } from '../../types/checklist'
 import type { PageStatePayload } from '../../types/messages'
+import { chatgptConversationUrl } from './chat-url'
 import { normalizeItemText } from './normalize-item'
 
 /**
@@ -111,21 +112,32 @@ function toChecklistItem(parsed: ParsedItem, order: number): ChecklistItem {
   }
 }
 
+export type NewChecklistMeta = {
+  sourceChatUrl: string
+  conversationLabel: string | null
+  createdAt?: number
+}
+
 /**
  * Create a new checklist record from parsed items.
  */
 export function createChecklistRecord(
   conversationId: string,
   parsedItems: ParsedItem[],
+  meta?: NewChecklistMeta,
 ): ChecklistRecord {
   const now = Date.now()
   const items: ChecklistItem[] = parsedItems.map((p, i) => toChecklistItem(p, i))
   const sourceFingerprint = parsedItems.length > 0 ? simpleFingerprint(parsedItems) : null
+  const sourceChatUrl = meta?.sourceChatUrl ?? chatgptConversationUrl(conversationId)
   return {
     version: 1,
     conversationId,
     sourceFingerprint,
     updatedAt: now,
+    createdAt: meta?.createdAt ?? now,
+    sourceChatUrl,
+    conversationLabel: meta?.conversationLabel ?? null,
     items,
   }
 }

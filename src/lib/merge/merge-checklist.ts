@@ -128,8 +128,7 @@ export function mergeChecklist(
   const remainingArchived = archivedOld.filter((i) => !usedArchivedIds.has(i.id))
   const allItems = [...mergedActive, ...newlyArchived, ...remainingArchived]
   const record: ChecklistRecord = {
-    version: 1,
-    conversationId: existing.conversationId,
+    ...existing,
     sourceFingerprint: newFp,
     updatedAt: Date.now(),
     items: allItems,

@@ -5,6 +5,8 @@ export type PageStatePayload = {
   supported: boolean
   latestMessageText: string | null
   taskCandidates: string[]
+  /** From document title when available (e.g. thread name). */
+  conversationTitle: string | null
   /** True when the latest assistant message is still streaming/generating; do not create or merge. */
   isGenerating: boolean
   /** True when multiple assistant response versions exist and one could not be chosen; do not guess. */
@@ -31,3 +33,8 @@ export type ReloadActiveTabResponse = { ok: true } | { ok: false; error: string 
 export type NavigateToConversationRequest = { type: 'NAVIGATE_TO_CONVERSATION'; conversationId: string }
 
 export type NavigateToConversationResponse = { ok: true } | { ok: false; error: string }
+
+/** Open a ChatGPT URL in a new browser tab (library → original chat). */
+export type OpenChatUrlInNewTabRequest = { type: 'OPEN_CHAT_URL_IN_NEW_TAB'; url: string }
+
+export type OpenChatUrlInNewTabResponse = { ok: true } | { ok: false; error: string }

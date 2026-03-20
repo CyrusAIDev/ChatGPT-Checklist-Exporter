@@ -1,4 +1,5 @@
 import type { ChecklistItem, ChecklistRecord } from '../../types/checklist'
+import { chatgptConversationUrl } from '../chatgpt/chat-url'
 
 function isChecklistItem(raw: unknown): raw is ChecklistItem {
   if (raw == null || typeof raw !== 'object') return false
@@ -27,11 +28,29 @@ export function validateChecklistRecord(raw: unknown): ChecklistRecord | null {
     if (!isChecklistItem(entry)) return null
     items.push(entry)
   }
+  const conversationId = o.conversationId as string
+  const updatedAt = o.updatedAt as number
+  const createdAt = typeof o.createdAt === 'number' ? o.createdAt : updatedAt
+  let sourceChatUrl: string
+  if (typeof o.sourceChatUrl === 'string' && o.sourceChatUrl.trim().length > 0) {
+    sourceChatUrl = o.sourceChatUrl.trim()
+  } else {
+    sourceChatUrl = chatgptConversationUrl(conversationId)
+  }
+  const conversationLabel =
+    o.conversationLabel === null
+      ? null
+      : typeof o.conversationLabel === 'string'
+        ? o.conversationLabel
+        : null
   return {
     version: 1,
-    conversationId: o.conversationId as string,
+    conversationId,
     sourceFingerprint: o.sourceFingerprint === null || typeof o.sourceFingerprint === 'string' ? o.sourceFingerprint : null,
-    updatedAt: o.updatedAt as number,
+    updatedAt,
+    createdAt,
+    sourceChatUrl,
+    conversationLabel,
     items,
   }
 }

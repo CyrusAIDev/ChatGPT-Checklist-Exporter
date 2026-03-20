@@ -2,7 +2,7 @@
 
 **Progress bar:** `[######] 100%`
 **Current phase:** Sprint complete
-**Current focus:** Checklist library planning (next milestone).
+**Current focus:** First paid AI action (next milestone).
 
 ## Completed
 - working MVP exists
@@ -21,12 +21,13 @@
 - merge/source stabilization: no-op when merged result equivalent to existing (avoids meaningless merge summary); order-preserving fingerprint in create; multi-response handling (use selected/visible only, show “Choose a response version” when ambiguous)
 - source-selection hotfix: use latest assistant reply only; ambiguity only when latest turn has multiple visible/selected candidates
 - source-selection debugging/fix: pure `chooseAssistantSource` helper + dev-only extractor logging; default last contentful assistant; ambiguity only with positive same-article grouping and no single selected winner (multiple visible turns no longer ambiguous)
+- **Checklist library milestone:** cross-conversation Library in side panel (list + search, detail with check/uncheck + archive, open original chat in new tab), minimal record metadata (`createdAt`, `sourceChatUrl`, `conversationLabel` from page title), default Library when tab is not ChatGPT / no tab; Current chat flow unchanged for capture/merge/reset
 
 ## In Progress
 - none
 
 ## Next
-- checklist library planning
+- first paid AI action (e.g. assistive clean-up; build only when milestone explicitly scopes it)
 
 ## Blockers
 - none

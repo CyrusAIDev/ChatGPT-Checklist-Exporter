@@ -102,6 +102,13 @@ function previewText(s: string, max = 80): string {
   return t.length <= max ? t : `${t.slice(0, max)}…`
 }
 
+function conversationTitleFromDocument(): string | null {
+  const t = document.title?.trim()
+  if (!t) return null
+  const cleaned = t.replace(/\s*[-·]\s*ChatGPT\s*$/i, '').trim()
+  return cleaned.length > 0 ? cleaned : null
+}
+
 function logAssistantSourceDebug(
   rows: Array<{
     el: HTMLElement
@@ -219,6 +226,7 @@ export function extractLatestAssistantMessage(): PageStatePayload {
     supported,
     latestMessageText,
     taskCandidates,
+    conversationTitle: conversationTitleFromDocument(),
     isGenerating,
     ...(ambiguousResponseVersions ? { ambiguousResponseVersions: true } : {}),
   }

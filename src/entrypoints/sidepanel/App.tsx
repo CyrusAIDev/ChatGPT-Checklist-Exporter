@@ -1,22 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { ChecklistRecord } from '../../types/checklist'
 import type {
   PageStatePayload,
   GetPageStateForActiveTabResponse,
   ReloadActiveTabResponse,
   NavigateToConversationResponse,
+  OpenChatUrlInNewTabResponse,
 } from '../../types/messages'
-import { getChecklist, setChecklist, deleteChecklist } from '../../lib/storage/checklist-repo'
+import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
+import { chatgptConversationUrl } from '../../lib/chatgpt/chat-url'
 import { mergeChecklist } from '../../lib/merge/merge-checklist'
 import type { MergeSummary } from '../../lib/merge/merge-checklist'
+import {
+  filterChecklistsByQuery,
+  sortChecklistsByUpdatedDesc,
+} from '../../lib/library/library-query'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
 import { PanelHeader } from '../../components/PanelHeader'
+import { PanelViewSwitcher } from '../../components/PanelViewSwitcher'
 import { PanelStateCard } from '../../components/PanelStateCard'
 import { ArchivedChecklistSection } from '../../components/ArchivedChecklistSection'
 import { ChecklistActionBar } from '../../components/ChecklistActionBar'
 import { ChecklistActiveList } from '../../components/ChecklistActiveList'
 import { ChecklistMetaStrip } from '../../components/ChecklistMetaStrip'
+import { LibraryChecklistList } from '../../components/library/LibraryChecklistList'
+import { LibraryChecklistDetail } from '../../components/library/LibraryChecklistDetail'
 
 type PageStateStatus = PageStatePayload | null | 'loading'
 type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
@@ -41,7 +50,6 @@ function fetchPageStateOnce(): Promise<GetPageStateForActiveTabResponse> {
   })
 }
 
-/** Fetch page state with retries on no_response (e.g. content script not ready after extension reload). */
 async function fetchPageStateWithRetry(): Promise<GetPageStateForActiveTabResponse> {
   for (let attempt = 1; attempt <= PAGE_STATE_RETRY_ATTEMPTS; attempt++) {
     const response = await fetchPageStateOnce()
@@ -55,7 +63,6 @@ async function fetchPageStateWithRetry(): Promise<GetPageStateForActiveTabRespon
   return { ok: false, error: 'no_response' }
 }
 
-/** Poll for page state until ok or max attempts. Used for recovery so panel can recover without reopening. */
 async function pollPageState(
   intervalMs: number,
   maxAttempts: number,
@@ -76,6 +83,22 @@ function fetchFreshPageState(): Promise<GetPageStateForActiveTabResponse> {
   return fetchPageStateWithRetry()
 }
 
+type SidepanelLayoutProps = {
+  panelView: 'chat' | 'library'
+  onPanelViewChange: (v: 'chat' | 'library') => void
+  children: ReactNode
+}
+
+function SidepanelLayout({ panelView, onPanelViewChange, children }: SidepanelLayoutProps) {
+  return (
+    <div className="sidepanel">
+      <PanelHeader />
+      <PanelViewSwitcher value={panelView} onChange={onPanelViewChange} />
+      {children}
+    </div>
+  )
+}
+
 function App() {
   const [pageState, setPageState] = useState<PageStateStatus>('loading')
   const [pageError, setPageError] = useState<PageStateError>(null)
@@ -87,6 +110,17 @@ function App() {
   const [archivedCollapsed, setArchivedCollapsed] = useState(true)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [refreshingTab, setRefreshingTab] = useState(false)
+
+  const [panelView, setPanelView] = useState<'chat' | 'library'>('chat')
+  const [initialViewSet, setInitialViewSet] = useState(false)
+  const [librarySearch, setLibrarySearch] = useState('')
+  const [libraryRecords, setLibraryRecords] = useState<ChecklistRecord[]>([])
+  const [libraryDetailId, setLibraryDetailId] = useState<string | null>(null)
+  const [libraryDetailRecord, setLibraryDetailRecord] = useState<ChecklistRecord | null>(null)
+
+  const refreshLibrary = useCallback(() => {
+    listAllChecklists().then(setLibraryRecords)
+  }, [])
 
   const loadPageState = () => {
     setPageState('loading')
@@ -105,7 +139,6 @@ function App() {
     })
   }
 
-  /** Re-check page state without reload (bounded poll). Secondary recovery when Refresh is overkill. */
   const handleCheckAgain = () => {
     setPageState('loading')
     setPageError(null)
@@ -120,7 +153,6 @@ function App() {
     })
   }
 
-  /** Re-fetch page state when the active ChatGPT tab becomes ready (e.g. after refresh). Clears refreshing state. */
   const reFetchFromTabReady = () => {
     setPageState('loading')
     setPageError(null)
@@ -143,7 +175,15 @@ function App() {
     loadPageState()
   }, [])
 
-  /** Subscribe to tab lifecycle so panel recovers when active ChatGPT tab becomes ready (e.g. after Refresh page) or user switches tab. */
+  useEffect(() => {
+    if (initialViewSet) return
+    if (pageState === 'loading') return
+    if (pageError === 'not_chatgpt' || pageError === 'no_tab') {
+      setPanelView('library')
+    }
+    setInitialViewSet(true)
+  }, [pageState, pageError, initialViewSet])
+
   useEffect(() => {
     const onTabUpdated = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
       if (changeInfo.status !== 'complete') return
@@ -157,7 +197,6 @@ function App() {
         chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
           const active = activeTabs[0]
           if (!active || active.id !== tabId) return
-          /* Wait for ChatGPT to render before re-fetching; content script needs DOM ready. */
           setTimeout(reFetchFromTabReady, TAB_READY_DELAY_MS)
         })
       })
@@ -182,6 +221,71 @@ function App() {
     }
   }, [pageState])
 
+  useEffect(() => {
+    if (panelView !== 'library') return
+    refreshLibrary()
+  }, [panelView, refreshLibrary])
+
+  useEffect(() => {
+    if (panelView !== 'library' || !libraryDetailId) {
+      setLibraryDetailRecord(null)
+      return
+    }
+    getChecklist(libraryDetailId).then((r) => {
+      if (r) {
+        setLibraryDetailRecord(r)
+      } else {
+        setLibraryDetailId(null)
+        setLibraryDetailRecord(null)
+      }
+    })
+  }, [panelView, libraryDetailId])
+
+  const openChatInNewTab = (url: string) => {
+    chrome.runtime.sendMessage(
+      { type: 'OPEN_CHAT_URL_IN_NEW_TAB', url },
+      (response: OpenChatUrlInNewTabResponse | undefined) => {
+        if (response?.ok !== true && isDev()) {
+          console.warn('[Living Checklist] OPEN_CHAT_URL_IN_NEW_TAB failed', response)
+        }
+      },
+    )
+  }
+
+  const handleLibraryOpenDetail = (conversationId: string) => {
+    setLibraryDetailId(conversationId)
+  }
+
+  const handleLibraryBack = () => {
+    setLibraryDetailId(null)
+    setLibraryDetailRecord(null)
+    refreshLibrary()
+  }
+
+  const handleLibraryItemToggle = async (itemId: string) => {
+    if (!libraryDetailRecord) return
+    const nextItems = libraryDetailRecord.items.map((i) =>
+      i.id === itemId ? { ...i, checked: !i.checked } : i,
+    )
+    const nextRecord: ChecklistRecord = {
+      ...libraryDetailRecord,
+      items: nextItems,
+      updatedAt: Date.now(),
+    }
+    await setChecklist(nextRecord)
+    setLibraryDetailRecord(nextRecord)
+    setLibraryRecords((prev) =>
+      prev.map((r) => (r.conversationId === nextRecord.conversationId ? nextRecord : r)),
+    )
+    if (
+      pageState &&
+      pageState !== 'loading' &&
+      pageState.conversationId === nextRecord.conversationId
+    ) {
+      setChecklistState(nextRecord)
+    }
+  }
+
   const handleToggle = async (itemId: string) => {
     if (!checklist) return
     const nextItems = checklist.items.map((i) =>
@@ -194,6 +298,12 @@ function App() {
     }
     await setChecklist(nextRecord)
     setChecklistState(nextRecord)
+    if (libraryDetailId === checklist.conversationId) {
+      setLibraryDetailRecord(nextRecord)
+    }
+    setLibraryRecords((prev) =>
+      prev.map((r) => (r.conversationId === nextRecord.conversationId ? nextRecord : r)),
+    )
   }
 
   const handleCreateChecklist = async () => {
@@ -227,10 +337,14 @@ function App() {
         setError('No list found in the latest assistant message.')
         return
       }
-      const record = createChecklistRecord(fresh.conversationId, parsed)
+      const record = createChecklistRecord(fresh.conversationId, parsed, {
+        sourceChatUrl: chatgptConversationUrl(fresh.conversationId),
+        conversationLabel: fresh.conversationTitle,
+      })
       await setChecklist(record)
       setChecklistState(record)
       setPageState(fresh)
+      refreshLibrary()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create checklist.')
     } finally {
@@ -278,10 +392,15 @@ function App() {
         setInfoMessage('Already matches the latest reply.')
         return
       }
-      await setChecklist(result.record)
-      setChecklistState(result.record)
+      const mergedRecord: ChecklistRecord = {
+        ...result.record,
+        conversationLabel: fresh.conversationTitle ?? result.record.conversationLabel,
+      }
+      await setChecklist(mergedRecord)
+      setChecklistState(mergedRecord)
       setMergeSummary(result.summary)
       setPageState(fresh)
+      refreshLibrary()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Merge failed.')
     } finally {
@@ -289,7 +408,6 @@ function App() {
     }
   }
 
-  /** Refresh active tab; tab onUpdated(complete) listener will re-fetch and recover panel automatically. */
   const handleRefreshPage = () => {
     setRefreshingTab(true)
     setPageState('loading')
@@ -302,7 +420,6 @@ function App() {
           setPageState(null)
           setPageError('no_response')
         }
-        /* When reload succeeds, tab will fire onUpdated(complete) and reFetchFromTabReady() runs. */
       },
     )
   }
@@ -332,36 +449,70 @@ function App() {
     setInfoMessage(null)
     setArchivedCollapsed(true)
     setResetConfirmOpen(false)
+    refreshLibrary()
+  }
+
+  const sortedFilteredLibrary = sortChecklistsByUpdatedDesc(
+    filterChecklistsByQuery(libraryRecords, librarySearch),
+  )
+
+  if (panelView === 'library') {
+    return (
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+        {error ? (
+          <div className="state-banner state-banner--error" role="alert">
+            <p className="state-banner-text">{error}</p>
+          </div>
+        ) : null}
+        {libraryDetailId && libraryDetailRecord ? (
+          <LibraryChecklistDetail
+            record={libraryDetailRecord}
+            onBack={handleLibraryBack}
+            onToggleItem={handleLibraryItemToggle}
+            onOpenChatInNewTab={openChatInNewTab}
+          />
+        ) : libraryDetailId ? (
+          <PanelStateCard tone="muted">
+            <p className="state-body">Opening checklist…</p>
+          </PanelStateCard>
+        ) : (
+          <LibraryChecklistList
+            records={sortedFilteredLibrary}
+            search={librarySearch}
+            onSearchChange={setLibrarySearch}
+            onOpenDetail={handleLibraryOpenDetail}
+            onOpenChatUrl={openChatInNewTab}
+          />
+        )}
+      </SidepanelLayout>
+    )
   }
 
   if (pageState === 'loading') {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard tone="muted">
           <p className="state-body">Checking this tab…</p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (pageError === 'no_tab') {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard>
           <p className="state-body">
-            Open a saved ChatGPT thread in this window, then open the panel again.
+            Open a saved ChatGPT thread in this window for capture, or use Library to open a saved checklist.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (pageError === 'no_response') {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard
           title="Can’t read this tab"
           actions={
@@ -376,72 +527,68 @@ function App() {
           }
         >
           <p className="state-body">
-            Tab may still be loading, or the add-on was just reloaded. Refresh the tab or use Check again.
+            Tab may still be loading, or the add-on was just reloaded. Refresh the tab or use Check again. You can also
+            use Library anytime.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (pageError === 'not_chatgpt') {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard>
           <p className="state-body">
-            Right now this panel works with saved ChatGPT conversations. Open{' '}
-            <span className="state-nowrap">chatgpt.com</span> when you’re ready.
+            Capture and merge run on saved ChatGPT threads. Switch to Library to continue checklists you already saved,
+            or open <span className="state-nowrap">chatgpt.com</span> when you’re ready.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (pageState === null) {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard>
           <p className="state-body">
             Open a saved conversation (<span className="state-nowrap">chatgpt.com/c/…</span>) to create or update a
-            checklist.
+            checklist, or use Library for saved lists.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (!pageState.supported) {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard>
           <p className="state-body">
             Saved conversations use a URL like <span className="state-nowrap">chatgpt.com/c/…</span>. Save this chat
-            first.
+            first. Library still has your other saved checklists.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (pageState.isGenerating) {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard title="Reply in progress" tone="hold">
           <p className="state-body state-body--secondary">
             Wait for the answer to finish. Then capture or merge from that message.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (pageState.ambiguousResponseVersions) {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard
           title="Choose a response version"
           tone="info"
@@ -455,7 +602,7 @@ function App() {
             ChatGPT is showing multiple reply versions. Select the one you want, then check again.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
@@ -465,8 +612,7 @@ function App() {
 
   if (!hasAssistantContent) {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard
           title="No assistant message in view yet"
           tone="info"
@@ -485,14 +631,13 @@ function App() {
             The page may still be loading, or scroll to the latest reply. Refresh page or Check again to try again.
           </p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
   if (checklist && pageState.conversationId !== checklist.conversationId) {
     return (
-      <div className="sidepanel">
-        <PanelHeader />
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
         <PanelStateCard
           title="Different conversation"
           actions={
@@ -503,7 +648,7 @@ function App() {
         >
           <p className="state-body">This checklist belongs to another thread. Switch chats to continue.</p>
         </PanelStateCard>
-      </div>
+      </SidepanelLayout>
     )
   }
 
@@ -513,8 +658,7 @@ function App() {
   const totalCount = activeItems.length
 
   return (
-    <div className="sidepanel">
-      <PanelHeader />
+    <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
       {error ? (
         <div className="state-banner state-banner--error" role="alert">
           <p className="state-banner-text">{error}</p>
@@ -563,7 +707,7 @@ function App() {
           )}
         </div>
       )}
-    </div>
+    </SidepanelLayout>
   )
 }
 

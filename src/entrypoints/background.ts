@@ -2,6 +2,7 @@ import type {
   GetPageStateForActiveTabRequest,
   GetPageStateForActiveTabResponse,
   NavigateToConversationResponse,
+  OpenChatUrlInNewTabResponse,
   PageStatePayload,
   ReloadActiveTabResponse,
 } from '../types/messages'
@@ -21,15 +22,36 @@ export default defineBackground(() => {
       message:
         | GetPageStateForActiveTabRequest
         | { type: 'RELOAD_ACTIVE_TAB' }
-        | { type: 'NAVIGATE_TO_CONVERSATION'; conversationId: string },
+        | { type: 'NAVIGATE_TO_CONVERSATION'; conversationId: string }
+        | { type: 'OPEN_CHAT_URL_IN_NEW_TAB'; url: string },
       _sender: chrome.runtime.MessageSender,
       sendResponse: (
         response:
           | GetPageStateForActiveTabResponse
           | ReloadActiveTabResponse
-          | NavigateToConversationResponse,
+          | NavigateToConversationResponse
+          | OpenChatUrlInNewTabResponse,
       ) => void,
     ) => {
+      if (message.type === 'OPEN_CHAT_URL_IN_NEW_TAB') {
+        try {
+          const url = new URL(message.url)
+          if (url.origin !== CHATGPT_ORIGIN) {
+            sendResponse({ ok: false, error: 'not_chatgpt' })
+            return false
+          }
+          if (!url.pathname.match(/^\/c\/[^/]+\/?$/)) {
+            sendResponse({ ok: false, error: 'invalid_path' })
+            return false
+          }
+          chrome.tabs.create({ url: message.url })
+          sendResponse({ ok: true })
+        } catch {
+          sendResponse({ ok: false, error: 'invalid_url' })
+        }
+        return false
+      }
+
       if (message.type === 'RELOAD_ACTIVE_TAB') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           const tab = tabs[0]
