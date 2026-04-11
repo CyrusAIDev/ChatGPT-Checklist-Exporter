@@ -17,12 +17,24 @@ const BULLET = /^\s*[-*•]\s+/
 const NUMBERED = /^\s*\d+[.)]\s+/
 const CHECKBOX_UNCHECKED = /^\s*\[\s?\]\s*/
 const CHECKBOX_CHECKED = /^\s*\[x\]\s*/i
+/** GFM task list: `- [ ] item`, `* [x] done` (must be detected before plain `- ` bullets). */
+const MD_GFM_TASK = /^\s*[-*•]\s+\[\s*([xX]?)\s*\]\s*(.*)$/
+
+/** Emoji-prefixed numbered section heading, e.g. `🧠 1. Validate the Idea`. */
+const EMOJI_SECTION_HEADING =
+  /^((?:\p{Extended_Pictographic}\uFE0F?\s*)+)(\d+[.)]\s+)(.+)$/u
 
 type ListLineKind = 'numbered' | 'bullet' | 'checkbox'
+
+function lineHasMdGfmTask(line: string): boolean {
+  const t = line.trim()
+  return MD_GFM_TASK.test(t)
+}
 
 function isListLine(line: string): boolean {
   const t = line.trim()
   if (!t) return false
+  if (lineHasMdGfmTask(line)) return true
   if (BULLET.test(t) || NUMBERED.test(t)) return true
   if (CHECKBOX_UNCHECKED.test(t) || CHECKBOX_CHECKED.test(t)) return true
   return false
@@ -30,7 +42,7 @@ function isListLine(line: string): boolean {
 
 function classifyListLine(line: string): ListLineKind {
   const t = line.trim()
-  if (CHECKBOX_CHECKED.test(t) || CHECKBOX_UNCHECKED.test(t)) return 'checkbox'
+  if (lineHasMdGfmTask(line) || CHECKBOX_CHECKED.test(t) || CHECKBOX_UNCHECKED.test(t)) return 'checkbox'
   if (NUMBERED.test(t)) return 'numbered'
   return 'bullet'
 }
@@ -59,6 +71,15 @@ function parseOneLine(line: string): ParsedItem | null {
   let text = line.trim()
   if (!text) return null
   let checked = false
+
+  const mdTask = text.match(MD_GFM_TASK)
+  if (mdTask) {
+    checked = (mdTask[1] ?? '').toLowerCase() === 'x'
+    text = (mdTask[2] ?? '').trim()
+    if (!text) return null
+    return { text, checked }
+  }
+
   if (CHECKBOX_CHECKED.test(text)) {
     checked = true
     text = text.replace(CHECKBOX_CHECKED, '').trim()
@@ -71,6 +92,51 @@ function parseOneLine(line: string): ParsedItem | null {
   }
   if (!text) return null
   return { text, checked }
+}
+
+function matchEmojiSectionHeading(line: string): string | null {
+  const t = line.trim()
+  const m = t.match(EMOJI_SECTION_HEADING)
+  if (!m || !m[3]) return null
+  return m[3].trim()
+}
+
+/**
+ * First list line that starts a strong block, or first list line after prose; drops leading intro.
+ * Never slices away an emoji section heading that appears before the first list line.
+ */
+function introStartIndex(lines: string[]): number {
+  const flags = lines.map((l) => isListLine(l))
+  let skip = 0
+  let foundPair = false
+  outer: for (let i = 0; i < lines.length; i++) {
+    if (!flags[i]) continue
+    for (let j = i + 1; j < lines.length && j <= i + 14; j++) {
+      if (flags[j]) {
+        skip = i
+        foundPair = true
+        break outer
+      }
+    }
+  }
+  if (!foundPair) {
+    let first = -1
+    for (let i = 0; i < flags.length; i++) {
+      if (flags[i]) {
+        first = i
+        break
+      }
+    }
+    skip = first > 0 ? first : 0
+  }
+  for (let k = 0; k < skip && k < lines.length; k++) {
+    if (matchEmojiSectionHeading(lines[k] ?? '')) return k
+  }
+  return skip
+}
+
+function isIndentedContinuation(line: string): boolean {
+  return /^\s{2,}\S/.test(line)
 }
 
 /** Strip leading markdown-style markers from the first line only; keep following paragraphs. */
@@ -123,26 +189,80 @@ export function parseChecklistFromHtmlListItems(
  * look like bullets, numbered items, or markdown checkboxes. Dedupes by
  * normalized text (exact duplicate normalized items kept once).
  * Source structure is inferred from every list-looking line (before dedupe).
+ *
+ * Also: skips leading intro prose before the first list block; treats
+ * emoji-prefixed numbered headings as section containers for following action lines.
  */
 export function parseChecklistFromText(
   text: string,
   normalize: (raw: string) => string,
 ): ParsedMessage {
-  const lines = text.split(/\r?\n/)
+  const rawLines = text.split(/\r?\n/)
+  const start = introStartIndex(rawLines)
+  const lines = rawLines.slice(start)
+
   const seen = new Set<string>()
   const result: ParsedItem[] = []
   const lineKinds: ListLineKind[] = []
-  for (const line of lines) {
+
+  let sectionTitle: string | null = null
+  let blankRun = 0
+
+  const appendDeduped = (item: ParsedItem) => {
+    const key = normalize(item.text)
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    result.push(item)
+  }
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx] ?? ''
+    const trimmed = line.trim()
+    if (!trimmed) {
+      blankRun++
+      if (sectionTitle && blankRun >= 2) sectionTitle = null
+      continue
+    }
+    blankRun = 0
+
+    const headingTitle = matchEmojiSectionHeading(line)
+    if (headingTitle) {
+      sectionTitle = headingTitle
+      continue
+    }
+
+    if (sectionTitle) {
+      const child = parseSectionChildLine(line, sectionTitle)
+      if (child) {
+        lineKinds.push(isListLine(line) ? classifyListLine(line) : 'bullet')
+        appendDeduped(child)
+        continue
+      }
+      sectionTitle = null
+    }
+
     if (!isListLine(line)) continue
     lineKinds.push(classifyListLine(line))
     const item = parseOneLine(line)
     if (!item) continue
-    const key = normalize(item.text)
-    if (!key || seen.has(key)) continue
-    seen.add(key)
-    result.push(item)
+    appendDeduped(item)
   }
+
   return { items: result, sourceStructure: inferSourceStructureFromLineKinds(lineKinds) }
+}
+
+function parseSectionChildLine(line: string, sectionTitle: string): ParsedItem | null {
+  const trimmed = line.trim()
+  if (!trimmed) return null
+  if (isListLine(line)) {
+    const parsed = parseOneLine(trimmed)
+    if (!parsed) return null
+    return { text: `${sectionTitle} — ${parsed.text}`, checked: parsed.checked }
+  }
+  if (isIndentedContinuation(line)) {
+    return { text: `${sectionTitle} — ${trimmed}`, checked: false }
+  }
+  return null
 }
 
 /**

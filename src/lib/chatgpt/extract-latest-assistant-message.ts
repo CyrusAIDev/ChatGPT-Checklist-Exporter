@@ -38,14 +38,31 @@ function listItemTextsForPayload(htmlListItems: HtmlListItemPayload[]): string[]
 
 /**
  * Get latest assistant message text from markdown blocks or fallback to full text.
+ * Uses innerText so fenced / code-style blocks keep line breaks; appends standalone
+ * <pre> bodies when they look like task lists (GFM checkboxes, bullets, numbers).
  */
 function getLatestMessageText(messageEl: HTMLElement): string {
   const markdownBlocks = Array.from(messageEl.querySelectorAll('.markdown')) as HTMLElement[]
+  const parts: string[] = []
   if (markdownBlocks.length > 0) {
-    const parts = markdownBlocks.map((el) => el.textContent?.trim() ?? '').filter(Boolean)
-    return parts.join('\n')
+    for (const el of markdownBlocks) {
+      const t = el.innerText?.trim() ?? ''
+      if (t) parts.push(t)
+    }
+    const pres = Array.from(messageEl.querySelectorAll('pre')) as HTMLElement[]
+    for (const pre of pres) {
+      if (markdownBlocks.some((md) => md.contains(pre))) continue
+      const t = pre.innerText?.trim() ?? ''
+      if (t.length < 12) continue
+      if (/^\s*[-*]\s+\[[\sx]\]/im.test(t) || /^\s*[-*•]\s+\S/m.test(t) || /^\s*\d+[.)]\s+/m.test(t)) {
+        parts.push(t)
+      }
+    }
+  } else {
+    const t = messageEl.innerText?.trim() ?? ''
+    if (t) parts.push(t)
   }
-  return messageEl.textContent?.trim() ?? ''
+  return parts.join('\n\n')
 }
 
 /**

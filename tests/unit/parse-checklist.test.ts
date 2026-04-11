@@ -72,6 +72,15 @@ describe('parseChecklistFromText', () => {
     expect(items[1]).toEqual({ text: 'Done', checked: true })
   })
 
+  it('parses GFM task list lines (- [ ] and * [x])', () => {
+    const text = '- [ ] Open task\n* [x] Closed task'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('checkbox')
+    expect(items).toHaveLength(2)
+    expect(items[0]).toEqual({ text: 'Open task', checked: false })
+    expect(items[1]).toEqual({ text: 'Closed task', checked: true })
+  })
+
   it('ignores empty and non-list lines', () => {
     const text = '- A\n\nSome prose here\n- B'
     const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
@@ -95,19 +104,48 @@ describe('parseChecklistFromText', () => {
     expect(items).toHaveLength(2)
     expect(sourceStructure).toBe('mixed')
   })
+
+  it('skips intro prose before a numbered list', () => {
+    const text =
+      'Here is a short introduction.\nIt spans two lines before the real plan.\n\n1. First step\n2. Second step\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toBe('First step')
+    expect(items[1].text).toBe('Second step')
+  })
+
+  it('parses emoji section heading with bullet children as flat prefixed items', () => {
+    const text = '🧠 1. Validate the Idea\n- Talk to users\n- Sketch flows\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(items).toHaveLength(2)
+    expect(sourceStructure).toBe('unordered')
+    expect(items[0].text).toBe('Validate the Idea — Talk to users')
+    expect(items[1].text).toBe('Validate the Idea — Sketch flows')
+  })
 })
 
 describe('parseChecklistFromHtmlListItems', () => {
   it('keeps multiline li text and infers ordered structure', () => {
     const rows = [
-      { text: 'Step one\n\nExtra paragraph.', listKind: 'ordered' as const },
+      { text: 'Step title\n\nExplanation paragraph for this step.', listKind: 'ordered' as const },
       { text: 'Step two', listKind: 'ordered' as const },
     ]
     const { items, sourceStructure } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
     expect(sourceStructure).toBe('ordered')
     expect(items).toHaveLength(2)
-    expect(items[0].text).toContain('Extra paragraph')
+    expect(items[0].text).toContain('Explanation paragraph')
     expect(items[1].text).toBe('Step two')
+  })
+
+  it('keeps ordered sequence when HTML rows reflect split lists (e.g. media between blocks)', () => {
+    const rows = [
+      { text: 'Step before media', listKind: 'ordered' as const },
+      { text: 'Step after media', listKind: 'ordered' as const },
+    ]
+    const { items, sourceStructure } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items.map((i) => i.text)).toEqual(['Step before media', 'Step after media'])
   })
 
   it('strips markdown-style prefix from first line only inside HTML li', () => {
@@ -128,6 +166,14 @@ describe('parseChecklistFromCandidates', () => {
     expect(items[0]).toEqual({ text: 'A', checked: false })
     expect(items[1]).toEqual({ text: 'B', checked: true })
     expect(items[2]).toEqual({ text: 'C', checked: false })
+  })
+
+  it('parses GFM task lines in candidates', () => {
+    const candidates = ['- [ ] From DOM', '* [x] Done']
+    const { items, sourceStructure } = parseChecklistFromCandidates(candidates, normalizeItemText)
+    expect(sourceStructure).toBe('checkbox')
+    expect(items[0]).toEqual({ text: 'From DOM', checked: false })
+    expect(items[1]).toEqual({ text: 'Done', checked: true })
   })
 })
 
@@ -252,5 +298,19 @@ describe('createChecklistRecord', () => {
       sourceStructure: 'ordered',
     })
     expect(record.sourceStructure).toBe('ordered')
+  })
+
+  it('keeps item order for ordered sourceStructure (library / chat rendering)', () => {
+    const items = [
+      { text: 'First', checked: false },
+      { text: 'Second', checked: true },
+    ]
+    const record = createChecklistRecord('conv-1', items, {
+      sourceChatUrl: 'https://chatgpt.com/c/conv-1',
+      conversationLabel: null,
+      sourceStructure: 'ordered',
+    })
+    expect(record.items.map((i) => i.text)).toEqual(['First', 'Second'])
+    expect(record.items.map((i) => i.order)).toEqual([0, 1])
   })
 })

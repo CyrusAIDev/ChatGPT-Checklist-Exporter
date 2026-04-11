@@ -86,6 +86,20 @@ Pass:
 - apply updates only that checklist
 - checked state remains sensible after apply
 
+### 9. S1 parser + ordered presentation (capture regressions)
+- capture from a reply that uses **GFM tasks** (`- [ ]` / `* [x]`) in normal markdown or fenced code-style blocks
+- capture from a reply with a **short intro paragraph** then a **numbered** list
+- capture from a **numbered HTML** answer where **images/cards** sit between step blocks (split `<ol>` fragments)
+- capture from **emoji + numbered section headings** with bullet children under each section
+- confirm **ordered** checklists show a **clear step column + checkbox + wrapping body** (not cramped)
+- confirm **unordered / bullet** lists still look correct
+- merge + no-op flows still behave after capture
+
+Pass:
+- checklist extracts the actionable rows (no false “empty capture” from valid lists)
+- ordered steps stay visibly ordered in current chat and library detail
+- merge identity still follows normalized text (step numbers are presentation only)
+
 ## Fail immediately if
 - current chat capture gets weaker
 - merge behavior becomes unpredictable

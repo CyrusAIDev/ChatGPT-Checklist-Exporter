@@ -378,34 +378,49 @@ body,
 }
 
 .sidepanel .checklist-item-row--ordered {
-  grid-template-columns: minmax(1.25rem, auto) 1.125rem minmax(0, 1fr);
+  grid-template-columns: 1.625rem 1.375rem minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: start;
 }
 
 .sidepanel .checklist-step-num {
   font-size: var(--type-micro);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-muted);
+  opacity: 0.82;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  padding-top: 0.2rem;
+  padding-top: 0.35rem;
   line-height: 1.35;
   flex-shrink: 0;
+  min-width: 1.25rem;
+}
+
+.sidepanel .checklist-step-num::after {
+  content: '.';
+  font-weight: 400;
+  opacity: 0.55;
 }
 
 .sidepanel .checklist-item-check {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding-top: 0.2rem;
+  padding-top: 0.32rem;
+  min-width: 1.375rem;
 }
 
 .sidepanel .checklist-item-check input[type='checkbox'] {
   margin: 0;
   flex-shrink: 0;
-  width: 1.0625rem;
-  height: 1.0625rem;
+  width: 1.125rem;
+  height: 1.125rem;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+.sidepanel .checklist-item-content {
+  min-width: 0;
 }
 
 .sidepanel .item-text {
@@ -413,6 +428,34 @@ body,
   line-height: 1.5;
   word-wrap: break-word;
   min-width: 0;
+  display: block;
+}
+
+.sidepanel .item-text--stacked .item-text-lead {
+  display: block;
+  font-weight: 600;
+  font-size: var(--type-body);
+  line-height: 1.45;
+  margin-bottom: var(--space-2);
+  color: var(--text-strong);
+}
+
+.sidepanel .item-text--stacked .item-text-rest {
+  display: block;
+  font-size: var(--type-section);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-muted-strong);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.sidepanel .item-text--stacked.item-checked .item-text-lead,
+.sidepanel .item-text--stacked.item-checked .item-text-rest {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--text-muted) 50%, transparent);
+  text-decoration-thickness: 1px;
 }
 
 .sidepanel .item-checked {

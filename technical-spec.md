@@ -35,6 +35,14 @@ Secondary allowed areas:
 - storage repo/query helpers
 - small new helper files under `src/lib/chatgpt/*` or `src/lib/ai/*`
 - `src/types/messages.ts` only if needed
+- narrow companion updates to `src/lib/chatgpt/extract-latest-assistant-message.ts` for message text assembly (e.g. markdown `innerText`, fenced `<pre>`) when chooser rules and merge identity stay unchanged
+
+### Parser coverage (S1 checklist capture)
+The text + DOM parser should recognize, without broadening product scope:
+- native `ol` / `ul` list items (document order, including across split lists when each fragment is a real list)
+- GFM task lines: `- [ ] item`, `* [x] item`, plus standalone `[ ]` / `[x]` lines
+- plain numbered lines (`1.`, `2)`, …) and bullets after optional intro prose (intro skipped only when a strong list block is detected)
+- emoji-prefixed numbered section headings (e.g. `🧠 1. Title`) whose following bullets/indents are flattened into prefixed checklist rows
 
 ## Ordered-step preservation rules
 
