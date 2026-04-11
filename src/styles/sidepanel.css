@@ -377,6 +377,21 @@ body,
   cursor: pointer;
 }
 
+.sidepanel .checklist-item-row--ordered {
+  grid-template-columns: minmax(1.25rem, auto) 1.125rem minmax(0, 1fr);
+}
+
+.sidepanel .checklist-step-num {
+  font-size: var(--type-micro);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 0.2rem;
+  line-height: 1.35;
+  flex-shrink: 0;
+}
+
 .sidepanel .checklist-item-check {
   display: flex;
   align-items: flex-start;

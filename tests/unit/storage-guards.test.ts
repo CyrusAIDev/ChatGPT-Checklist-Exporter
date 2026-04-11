@@ -19,6 +19,16 @@ describe('validateChecklistRecord', () => {
     expect(validateChecklistRecord(valid)).toEqual(valid)
   })
 
+  it('accepts optional sourceStructure when valid', () => {
+    const withStruct = { ...valid, sourceStructure: 'ordered' as const }
+    expect(validateChecklistRecord(withStruct)).toEqual(withStruct)
+  })
+
+  it('drops invalid sourceStructure', () => {
+    const bad = { ...valid, sourceStructure: 'bogus' }
+    expect(validateChecklistRecord(bad)).toEqual(valid)
+  })
+
   it('returns null for null/undefined', () => {
     expect(validateChecklistRecord(null)).toBeNull()
     expect(validateChecklistRecord(undefined)).toBeNull()

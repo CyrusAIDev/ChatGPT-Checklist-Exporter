@@ -1,5 +1,7 @@
-import type { ChecklistItem, ChecklistRecord } from '../../types/checklist'
+import type { ChecklistItem, ChecklistRecord, ChecklistSourceStructure } from '../../types/checklist'
 import { chatgptConversationUrl } from '../chatgpt/chat-url'
+
+const SOURCE_STRUCTURES = new Set<ChecklistSourceStructure>(['ordered', 'unordered', 'checkbox', 'mixed'])
 
 function isChecklistItem(raw: unknown): raw is ChecklistItem {
   if (raw == null || typeof raw !== 'object') return false
@@ -43,6 +45,10 @@ export function validateChecklistRecord(raw: unknown): ChecklistRecord | null {
       : typeof o.conversationLabel === 'string'
         ? o.conversationLabel
         : null
+  const sourceStructure =
+    typeof o.sourceStructure === 'string' && SOURCE_STRUCTURES.has(o.sourceStructure as ChecklistSourceStructure)
+      ? (o.sourceStructure as ChecklistSourceStructure)
+      : undefined
   return {
     version: 1,
     conversationId,
@@ -51,6 +57,7 @@ export function validateChecklistRecord(raw: unknown): ChecklistRecord | null {
     createdAt,
     sourceChatUrl,
     conversationLabel,
+    ...(sourceStructure !== undefined ? { sourceStructure } : {}),
     items,
   }
 }

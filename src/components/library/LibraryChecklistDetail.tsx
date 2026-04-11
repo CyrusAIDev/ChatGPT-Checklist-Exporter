@@ -43,7 +43,11 @@ export function LibraryChecklistDetail({
       </div>
       <h2 className="library-detail-title">{title}</h2>
       <ChecklistMetaStrip completedCount={completedCount} totalCount={totalCount} mergeSummary={null} />
-      <ChecklistActiveList items={activeItems} onToggle={onToggleItem} />
+      <ChecklistActiveList
+        items={activeItems}
+        onToggle={onToggleItem}
+        sourceStructure={record.sourceStructure ?? 'unordered'}
+      />
       <ArchivedChecklistSection
         items={archivedItems}
         collapsed={archivedCollapsed}

@@ -332,14 +332,15 @@ function App() {
         setInfoMessage('Wait until the reply finishes, then try again.')
         return
       }
-      const parsed = parseLatestMessage(fresh)
-      if (parsed.length === 0) {
+      const { items: parsedItems, sourceStructure } = parseLatestMessage(fresh)
+      if (parsedItems.length === 0) {
         setError('No list found in the latest assistant message.')
         return
       }
-      const record = createChecklistRecord(fresh.conversationId, parsed, {
+      const record = createChecklistRecord(fresh.conversationId, parsedItems, {
         sourceChatUrl: chatgptConversationUrl(fresh.conversationId),
         conversationLabel: fresh.conversationTitle,
+        sourceStructure,
       })
       await setChecklist(record)
       setChecklistState(record)
@@ -382,12 +383,12 @@ function App() {
       if (fresh.conversationId !== checklist.conversationId) {
         return
       }
-      const parsed = parseLatestMessage(fresh)
-      if (parsed.length === 0) {
+      const { items: parsedItems, sourceStructure } = parseLatestMessage(fresh)
+      if (parsedItems.length === 0) {
         setError('No list found in the latest assistant message.')
         return
       }
-      const result = mergeChecklist(checklist, parsed)
+      const result = mergeChecklist(checklist, parsedItems)
       if (result === null) {
         setInfoMessage('Already matches the latest reply.')
         return
@@ -395,6 +396,7 @@ function App() {
       const mergedRecord: ChecklistRecord = {
         ...result.record,
         conversationLabel: fresh.conversationTitle ?? result.record.conversationLabel,
+        sourceStructure,
       }
       await setChecklist(mergedRecord)
       setChecklistState(mergedRecord)
@@ -694,7 +696,11 @@ function App() {
             totalCount={totalCount}
             mergeSummary={mergeSummary}
           />
-          <ChecklistActiveList items={activeItems} onToggle={handleToggle} />
+          <ChecklistActiveList
+            items={activeItems}
+            onToggle={handleToggle}
+            sourceStructure={checklist.sourceStructure ?? 'unordered'}
+          />
           <ArchivedChecklistSection
             items={archivedItems}
             collapsed={archivedCollapsed}
