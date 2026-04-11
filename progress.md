@@ -1,8 +1,8 @@
 # Progress
 
 **Progress bar:** `[########-] 90%`
-**Current phase:** S2 — AI Clean Up MVP
-**Current focus:** One preview-first assistive action on saved checklists; no scope creep.
+**Current phase:** S1 — Ordered-step preservation (still in progress)
+**Current focus:** DOM list extraction for ChatGPT `<ol>` / `<ul>` step lists (multi-line `li`, `innerText`, record-level ordered vs unordered); merge and normalization unchanged.
 
 ## Completed
 - polished side-panel MVP
@@ -11,13 +11,14 @@
 - checklist library across conversations
 - current chat + library view switching
 - search/sort/open-original-chat library behavior
-- **S1 — Ordered-step preservation** (`sourceStructure` on records, parse infers ordered/unordered/checkbox/mixed from source lines, numbered active list when ordered, merge identity still normalized text; chat + library detail)
+- S1 partial: `sourceStructure` on records, numbered UI when ordered, merge identity by normalized text; chat + library detail
 
 ## In Progress
+- **S1 — Ordered-step preservation** (remaining manual QA: capture/merge numbered threads in real ChatGPT UI; confirm library detail)
 - doc sync for the post-library stage (other control docs may still be edited locally)
 
 ## Next
-- S2 AI Clean Up MVP
+- Finish S1 verification, then S2 AI Clean Up MVP
 - S3 launch assets / icon / listing
 - launch submission + sharing
 

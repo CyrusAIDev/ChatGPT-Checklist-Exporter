@@ -610,7 +610,8 @@ function App() {
 
   const hasAssistantContent =
     (pageState.latestMessageText != null && pageState.latestMessageText.length > 0) ||
-    (pageState.taskCandidates != null && pageState.taskCandidates.length > 0)
+    (pageState.taskCandidates != null && pageState.taskCandidates.length > 0) ||
+    (pageState.htmlListItems != null && pageState.htmlListItems.length > 0)
 
   if (!hasAssistantContent) {
     return (

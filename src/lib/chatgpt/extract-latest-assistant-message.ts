@@ -1,4 +1,4 @@
-import type { PageStatePayload } from '../../types/messages'
+import type { HtmlListItemPayload, PageStatePayload } from '../../types/messages'
 import {
   chooseAssistantSource,
   type AssistantSourceCandidate,
@@ -6,16 +6,34 @@ import {
 import { getConversationIdFromPathname } from './conversation'
 
 /**
- * Extract task candidate strings from list items in a message element.
+ * Top-level `li` nodes under `ol`/`ul` only, excluding `li` nested inside another matched `li`
+ * (avoids duplicating a parent step and its nested sub-bullets).
  */
-function getTaskCandidatesFromMessage(messageEl: HTMLElement): string[] {
-  const items = Array.from(messageEl.querySelectorAll('li'))
-  const candidates: string[] = []
-  for (const li of items) {
-    const text = li.textContent?.trim()
-    if (text) candidates.push(text)
+function collectOutermostDirectListItems(root: HTMLElement): HTMLLIElement[] {
+  const all = Array.from(root.querySelectorAll('ol > li, ul > li')) as HTMLLIElement[]
+  return all.filter((li) => !all.some((other) => other !== li && other.contains(li)))
+}
+
+/**
+ * Native ordered/unordered list rows: full `li` text (`innerText`) and parent list kind.
+ */
+function extractHtmlListItemsFromMessage(messageEl: HTMLElement): HtmlListItemPayload[] {
+  const lis = collectOutermostDirectListItems(messageEl)
+  const out: HtmlListItemPayload[] = []
+  for (const li of lis) {
+    const text = li.innerText?.trim() ?? ''
+    if (!text) continue
+    const parent = li.parentElement
+    const listKind: 'ordered' | 'unordered' =
+      parent?.tagName.toLowerCase() === 'ol' ? 'ordered' : 'unordered'
+    out.push({ text, listKind })
   }
-  return candidates
+  return out
+}
+
+/** Plain-text rows for logging / legacy shape; same order as `htmlListItems`. */
+function listItemTextsForPayload(htmlListItems: HtmlListItemPayload[]): string[] {
+  return htmlListItems.map((r) => r.text)
 }
 
 /**
@@ -154,6 +172,7 @@ type ContentfulRow = {
   assistantDomIndex: number
   text: string
   candidates: string[]
+  htmlListItems: HtmlListItemPayload[]
 }
 
 /**
@@ -170,22 +189,26 @@ export function extractLatestAssistantMessage(): PageStatePayload {
   const contentfulRows: ContentfulRow[] = []
   for (let i = 0; i < assistantMessages.length; i++) {
     const el = assistantMessages[i]
-    const candidates = getTaskCandidatesFromMessage(el)
+    const htmlListItems = extractHtmlListItemsFromMessage(el)
+    const candidates = listItemTextsForPayload(htmlListItems)
     const text = getLatestMessageText(el)
     if (candidates.length > 0 || text.length > 0) {
-      contentfulRows.push({ el, assistantDomIndex: i, text, candidates })
+      contentfulRows.push({ el, assistantDomIndex: i, text, candidates, htmlListItems })
     }
   }
 
   let latestMessageText: string | null = null
   let taskCandidates: string[] = []
+  let htmlListItems: HtmlListItemPayload[] | undefined
   let chosenEl: HTMLElement | null = null
   let ambiguousResponseVersions = false
 
   if (contentfulRows.length === 0 && supported && assistantMessages.length > 0) {
     const last = assistantMessages[assistantMessages.length - 1]
     latestMessageText = getLatestMessageText(last)
-    taskCandidates = getTaskCandidatesFromMessage(last)
+    const html = extractHtmlListItemsFromMessage(last)
+    htmlListItems = html.length > 0 ? html : undefined
+    taskCandidates = listItemTextsForPayload(html)
     chosenEl = last
   } else if (contentfulRows.length >= 1) {
     const debugRows = contentfulRows.map((row) => ({
@@ -214,6 +237,7 @@ export function extractLatestAssistantMessage(): PageStatePayload {
       if (picked) {
         latestMessageText = picked.text
         taskCandidates = picked.candidates
+        htmlListItems = picked.htmlListItems.length > 0 ? picked.htmlListItems : undefined
         chosenEl = picked.el
       }
     }
@@ -226,6 +250,7 @@ export function extractLatestAssistantMessage(): PageStatePayload {
     supported,
     latestMessageText,
     taskCandidates,
+    ...(htmlListItems != null && htmlListItems.length > 0 ? { htmlListItems } : {}),
     conversationTitle: conversationTitleFromDocument(),
     isGenerating,
     ...(ambiguousResponseVersions ? { ambiguousResponseVersions: true } : {}),

@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest'
 import {
   parseChecklistFromText,
   parseChecklistFromCandidates,
+  parseChecklistFromHtmlListItems,
   parseLatestMessage,
   createChecklistRecord,
   inferSourceStructureFromLineKinds,
+  inferSourceStructureFromDomListKinds,
 } from '../../src/lib/chatgpt/parse-checklist'
 import { normalizeItemText } from '../../src/lib/chatgpt/normalize-item'
 import type { PageStatePayload } from '../../src/types/messages'
@@ -24,6 +26,20 @@ describe('inferSourceStructureFromLineKinds', () => {
 
   it('classifies mixes as mixed', () => {
     expect(inferSourceStructureFromLineKinds(['bullet', 'numbered'])).toBe('mixed')
+  })
+})
+
+describe('inferSourceStructureFromDomListKinds', () => {
+  it('classifies all-ordered HTML lists', () => {
+    expect(inferSourceStructureFromDomListKinds(['ordered', 'ordered'])).toBe('ordered')
+  })
+
+  it('classifies all-unordered HTML lists', () => {
+    expect(inferSourceStructureFromDomListKinds(['unordered'])).toBe('unordered')
+  })
+
+  it('classifies ol+ul mix as mixed', () => {
+    expect(inferSourceStructureFromDomListKinds(['ordered', 'unordered'])).toBe('mixed')
   })
 })
 
@@ -81,6 +97,28 @@ describe('parseChecklistFromText', () => {
   })
 })
 
+describe('parseChecklistFromHtmlListItems', () => {
+  it('keeps multiline li text and infers ordered structure', () => {
+    const rows = [
+      { text: 'Step one\n\nExtra paragraph.', listKind: 'ordered' as const },
+      { text: 'Step two', listKind: 'ordered' as const },
+    ]
+    const { items, sourceStructure } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('Extra paragraph')
+    expect(items[1].text).toBe('Step two')
+  })
+
+  it('strips markdown-style prefix from first line only inside HTML li', () => {
+    const rows = [{ text: '- Inner bullet line\nBody', listKind: 'unordered' as const }]
+    const { items } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
+    expect(items).toHaveLength(1)
+    expect(items[0].text).toContain('Body')
+    expect(items[0].text.startsWith('-')).toBe(false)
+  })
+})
+
 describe('parseChecklistFromCandidates', () => {
   it('parses candidates and dedupes', () => {
     const candidates = ['- A', '[x] B', '1. C']
@@ -107,6 +145,42 @@ describe('parseLatestMessage', () => {
     expect(items).toHaveLength(1)
     expect(items[0].text).toBe('From DOM')
     expect(sourceStructure).toBe('unordered')
+  })
+
+  it('prefers htmlListItems over markdown taskCandidates when enough rows', () => {
+    const payload: PageStatePayload = {
+      conversationId: 'c1',
+      supported: true,
+      latestMessageText: 'noise',
+      taskCandidates: ['- From markdown'],
+      htmlListItems: [
+        { text: 'Plain step one\n\nDetails.', listKind: 'ordered' },
+        { text: 'Plain step two', listKind: 'ordered' },
+      ],
+      conversationTitle: null,
+      isGenerating: false,
+    }
+    const { items, sourceStructure } = parseLatestMessage(payload)
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('Details')
+    expect(items[1].text).toBe('Plain step two')
+    expect(sourceStructure).toBe('ordered')
+  })
+
+  it('falls back to latestMessageText when fewer than two HTML list rows', () => {
+    const payload: PageStatePayload = {
+      conversationId: 'c1',
+      supported: true,
+      latestMessageText: '1. A\n2. B',
+      taskCandidates: [],
+      htmlListItems: [{ text: 'Only one native li', listKind: 'ordered' }],
+      conversationTitle: null,
+      isGenerating: false,
+    }
+    const { items, sourceStructure } = parseLatestMessage(payload)
+    expect(items).toHaveLength(2)
+    expect(sourceStructure).toBe('ordered')
+    expect(items[0].text).toBe('A')
   })
 
   it('falls back to latestMessageText when no candidates', () => {

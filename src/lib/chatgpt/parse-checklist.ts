@@ -1,5 +1,5 @@
 import type { ChecklistItem, ChecklistRecord, ChecklistSourceStructure } from '../../types/checklist'
-import type { PageStatePayload } from '../../types/messages'
+import type { HtmlListItemPayload, PageStatePayload } from '../../types/messages'
 import { chatgptConversationUrl } from './chat-url'
 import { normalizeItemText } from './normalize-item'
 
@@ -43,6 +43,18 @@ export function inferSourceStructureFromLineKinds(kinds: ListLineKind[]): Checkl
   return 'mixed'
 }
 
+/** Minimum non-empty HTML list rows before treating DOM extraction as a checklist (avoids stray single bullets). */
+const MIN_HTML_LIST_ITEMS = 2
+
+export function inferSourceStructureFromDomListKinds(
+  kinds: Array<'ordered' | 'unordered'>,
+): ChecklistSourceStructure {
+  if (kinds.length === 0) return 'unordered'
+  if (kinds.every((k) => k === 'ordered')) return 'ordered'
+  if (kinds.every((k) => k === 'unordered')) return 'unordered'
+  return 'mixed'
+}
+
 function parseOneLine(line: string): ParsedItem | null {
   let text = line.trim()
   if (!text) return null
@@ -59,6 +71,51 @@ function parseOneLine(line: string): ParsedItem | null {
   }
   if (!text) return null
   return { text, checked }
+}
+
+/** Strip leading markdown-style markers from the first line only; keep following paragraphs. */
+function parseDomListItemText(fullText: string): ParsedItem | null {
+  const trimmed = fullText.trim()
+  if (!trimmed) return null
+  const lines = trimmed.split(/\r?\n/)
+  let i = 0
+  while (i < lines.length && !lines[i]?.trim()) i++
+  if (i >= lines.length) return null
+
+  const head = parseOneLine(lines[i]!.trim())
+  if (!head) return null
+  const tail = lines.slice(i + 1).join('\n').trim()
+  const text = tail ? `${head.text}\n${tail}`.trim() : head.text
+  if (!text) return null
+  return { text, checked: head.checked }
+}
+
+/**
+ * Parse native HTML list rows (full `li` text, no markdown prefixes).
+ * Dedupes by normalized text; preserves order of first occurrence.
+ */
+export function parseChecklistFromHtmlListItems(
+  rows: HtmlListItemPayload[],
+  normalize: (raw: string) => string,
+): ParsedMessage {
+  const seen = new Set<string>()
+  const result: ParsedItem[] = []
+  const structureKinds: Array<'ordered' | 'unordered'> = []
+  for (const row of rows) {
+    const text = row.text.trim()
+    if (!text) continue
+    const item = parseDomListItemText(text)
+    if (!item) continue
+    const key = normalize(item.text)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    structureKinds.push(row.listKind)
+    result.push(item)
+  }
+  return {
+    items: result,
+    sourceStructure: inferSourceStructureFromDomListKinds(structureKinds),
+  }
 }
 
 /**
@@ -116,6 +173,11 @@ export function parseChecklistFromCandidates(
  * DOM-first, then text fallback. Returns parsed items and inferred source list shape.
  */
 export function parseLatestMessage(payload: PageStatePayload): ParsedMessage {
+  const htmlRows = (payload.htmlListItems ?? []).filter((r) => r.text.trim().length > 0)
+  if (htmlRows.length >= MIN_HTML_LIST_ITEMS) {
+    const fromHtml = parseChecklistFromHtmlListItems(htmlRows, normalizeItemText)
+    if (fromHtml.items.length > 0) return fromHtml
+  }
   if (payload.taskCandidates.length > 0) {
     return parseChecklistFromCandidates(payload.taskCandidates, normalizeItemText)
   }

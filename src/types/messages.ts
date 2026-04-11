@@ -1,10 +1,18 @@
 /** Message contract: side panel -> background -> content script. */
 
+/** One list item from ChatGPT HTML (`ol` / `ul`); `listKind` is the parent list type. */
+export type HtmlListItemPayload = { text: string; listKind: 'ordered' | 'unordered' }
+
 export type PageStatePayload = {
   conversationId: string | null
   supported: boolean
   latestMessageText: string | null
   taskCandidates: string[]
+  /**
+   * Structured list rows from native HTML lists in the latest assistant message.
+   * When present with enough items, parsing prefers this over markdown-style `taskCandidates`.
+   */
+  htmlListItems?: HtmlListItemPayload[]
   /** From document title when available (e.g. thread name). */
   conversationTitle: string | null
   /** True when the latest assistant message is still streaming/generating; do not create or merge. */
