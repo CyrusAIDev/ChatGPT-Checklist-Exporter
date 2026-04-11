@@ -91,13 +91,16 @@ Pass:
 - capture from a reply with a **short intro paragraph** then a **numbered** list
 - capture from a **numbered HTML** answer where **images/cards** sit between step blocks (split `<ol>` fragments)
 - capture from **emoji + numbered section headings** with bullet children under each section
+- capture a **numbered list with nested bullets** under each step — nested bullets become supporting body, not separate items
 - confirm **ordered** checklists show a **clear step column + checkbox + wrapping body** (not cramped)
 - confirm **unordered / bullet** lists still look correct
 - merge + no-op flows still behave after capture
 
 Pass:
-- checklist extracts the actionable rows (no false “empty capture” from valid lists)
+- checklist extracts the actionable rows (no false "empty capture" from valid lists)
 - ordered steps stay visibly ordered in current chat and library detail
+- numbered parent steps are never lost when nested bullets appear
+- emoji/numbered section headings are preserved as parent items
 - merge identity still follows normalized text (step numbers are presentation only)
 
 ## Fail immediately if

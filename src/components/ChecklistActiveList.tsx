@@ -27,7 +27,7 @@ function OrderedItemBody({ text, checked }: { text: string; checked: boolean }) 
 export function ChecklistActiveList({ items, onToggle, sourceStructure }: Props) {
   const ordered = sourceStructure === 'ordered'
   return (
-    <ul className="checklist-list" role="list">
+    <ul className={`checklist-list${ordered ? ' checklist-list--ordered' : ''}`} role="list">
       {items.map((item, index) => (
         <li
           key={item.id}

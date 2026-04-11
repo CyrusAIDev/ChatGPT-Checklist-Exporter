@@ -377,9 +377,13 @@ body,
   cursor: pointer;
 }
 
+.sidepanel .checklist-list--ordered .checklist-item {
+  padding: var(--space-5) 0;
+}
+
 .sidepanel .checklist-item-row--ordered {
-  grid-template-columns: 1.625rem 1.375rem minmax(0, 1fr);
-  column-gap: var(--space-4);
+  grid-template-columns: 1.25rem 1.125rem minmax(0, 1fr);
+  column-gap: var(--space-3);
   align-items: start;
 }
 
@@ -387,27 +391,28 @@ body,
   font-size: var(--type-micro);
   font-weight: 500;
   color: var(--text-muted);
-  opacity: 0.82;
+  opacity: 0.6;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  padding-top: 0.35rem;
+  padding-top: 0.3rem;
   line-height: 1.35;
   flex-shrink: 0;
-  min-width: 1.25rem;
+  min-width: 1rem;
+  user-select: none;
 }
 
 .sidepanel .checklist-step-num::after {
   content: '.';
   font-weight: 400;
-  opacity: 0.55;
+  opacity: 0.5;
 }
 
 .sidepanel .checklist-item-check {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding-top: 0.32rem;
-  min-width: 1.375rem;
+  padding-top: 0.2rem;
+  min-width: 1.125rem;
 }
 
 .sidepanel .checklist-item-check input[type='checkbox'] {

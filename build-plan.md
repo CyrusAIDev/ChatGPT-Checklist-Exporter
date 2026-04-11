@@ -44,29 +44,24 @@ For each phase:
 
 ---
 
-## Phase S1 — Ordered-Step Preservation
+## Phase S1 — Ordered-Step Preservation + Parser Stabilization
 
-### Cursor does
-- inspect current parse/render path
-- preserve ordered source structure for step-by-step outputs
-- add the smallest metadata needed
-- render ordered records as numbered steps
-- keep checklist behavior the same
+**Status: code complete, pending manual QA**
 
-### Must produce
-- step-by-step output still feels like steps
-- merge behavior stays deterministic
-- library detail also respects ordered presentation
-
-### Do not do
-- no subtasks
-- no nested flows
-- no AI work yet
-- no broad schema redesign
+### What was done
+- DOM extraction: `li.innerText` replaced with own-text extraction; nested ol/ul removed from primary text, appended as paragraph-separated body
+- Parser: `parseDomListItemText` preserves paragraph breaks for title/body split
+- Parser: ordered HTML grouping — interleaved ul items grouped under preceding ol items
+- Parser: ordered text grouping — numbered lines and emoji section headings become parent items with child lines as body
+- Parser: emoji section headings produce a single ordered parent item (no longer child-only flat rows)
+- Ordered-row CSS: tighter grid, more vertical breathing room, step number visually secondary
+- 41 parser tests covering: nested bullets under ordered parents, interleaved ol/ul, emoji parent sections, GFM checkboxes, intro+list, media split, merge stability
 
 ### Definition of done
 - ordered source remains visibly ordered after capture
 - ordered source remains visibly ordered after merge
+- nested bullets don't flatten into separate items
+- emoji/numbered section headings are preserved as parent items
 - unordered lists still render normally
 - current chat and library detail both work
 
@@ -75,12 +70,15 @@ For each phase:
 - `npm test`
 
 ### Minimal manual QA
-1. Ask ChatGPT for a clearly numbered step-by-step process
-2. Capture checklist
-3. Confirm it renders as numbered steps, not a generic unordered list
-4. Ask ChatGPT to revise the steps
-5. Merge and confirm order + checked state still behave correctly
-6. Open the same checklist from Library and confirm ordered rendering there too
+1. Clean numbered step-by-step response
+2. Markdown checkbox response (`- [ ]`)
+3. Intro sentence + numbered list + extra bullets
+4. Numbered steps with nested bullets
+5. Numbered steps with images/media between heading and details
+6. Emoji/section-heading checklist
+7. Current bullet-list behavior still works
+8. Merge and no-op still work after capture
+9. Library detail preserves ordered rendering
 
 ### Update progress
 - mark S1 complete

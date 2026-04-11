@@ -15,14 +15,38 @@ function collectOutermostDirectListItems(root: HTMLElement): HTMLLIElement[] {
 }
 
 /**
- * Native ordered/unordered list rows: full `li` text (`innerText`) and parent list kind.
+ * Extract the li's own text, excluding content from nested ol/ul elements.
+ * Prevents nested sub-bullet text from being smashed into the parent item.
+ */
+function getListItemOwnText(li: HTMLLIElement): string {
+  const clone = li.cloneNode(true) as HTMLLIElement
+  for (const nested of Array.from(clone.querySelectorAll('ol, ul'))) {
+    nested.remove()
+  }
+  return clone.innerText?.trim() ?? ''
+}
+
+/**
+ * Native ordered/unordered list rows: own `li` text (without nested list content)
+ * plus nested list text as a paragraph-separated supporting body.
  */
 function extractHtmlListItemsFromMessage(messageEl: HTMLElement): HtmlListItemPayload[] {
   const lis = collectOutermostDirectListItems(messageEl)
   const out: HtmlListItemPayload[] = []
   for (const li of lis) {
-    const text = li.innerText?.trim() ?? ''
-    if (!text) continue
+    const ownText = getListItemOwnText(li)
+    if (!ownText) continue
+
+    const nestedListEls = Array.from(li.querySelectorAll('ol, ul')) as HTMLElement[]
+    const outermost = nestedListEls.filter(
+      (nl) => !nestedListEls.some((other) => other !== nl && other.contains(nl)),
+    )
+    const nestedText = outermost
+      .map((nl) => nl.innerText?.trim())
+      .filter(Boolean)
+      .join('\n')
+    const text = nestedText ? `${ownText}\n\n${nestedText}` : ownText
+
     const parent = li.parentElement
     const listKind: 'ordered' | 'unordered' =
       parent?.tagName.toLowerCase() === 'ol' ? 'ordered' : 'unordered'

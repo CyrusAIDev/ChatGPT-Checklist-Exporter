@@ -115,13 +115,76 @@ describe('parseChecklistFromText', () => {
     expect(items[1].text).toBe('Second step')
   })
 
-  it('parses emoji section heading with bullet children as flat prefixed items', () => {
+  it('parses emoji section heading as ordered parent with children as body', () => {
     const text = '🧠 1. Validate the Idea\n- Talk to users\n- Sketch flows\n'
     const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(items).toHaveLength(1)
+    expect(sourceStructure).toBe('ordered')
+    expect(items[0].text).toContain('Validate the Idea')
+    expect(items[0].text).toContain('Talk to users')
+    expect(items[0].text).toContain('Sketch flows')
+  })
+
+  it('groups nested bullets under numbered parent steps', () => {
+    const text = '1. First step\n   - Sub-point A\n   - Sub-point B\n2. Second step\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
     expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('First step')
+    expect(items[0].text).toContain('Sub-point A')
+    expect(items[0].text).toContain('Sub-point B')
+    expect(items[1].text).toBe('Second step')
+  })
+
+  it('groups non-indented nested bullets under numbered parents', () => {
+    const text = '1. First step\n- Detail A\n- Detail B\n2. Second step\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('First step')
+    expect(items[0].text).toContain('Detail A')
+    expect(items[1].text).toBe('Second step')
+  })
+
+  it('preserves intro skip with numbered list + nested bullets', () => {
+    const text =
+      'Here is the plan:\n\n1. Research the market\n- Read papers\n- Interview users\n2. Build prototype\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('Research the market')
+    expect(items[0].text).toContain('Read papers')
+    expect(items[1].text).toContain('Build prototype')
+  })
+
+  it('handles multiple emoji section headings as ordered parent items', () => {
+    const text =
+      '🧠 1. Validate the Idea\n- Talk to users\n- Sketch flows\n\n🎨 2. Design the Flow\n- Create mockups\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('Validate the Idea')
+    expect(items[0].text).toContain('Talk to users')
+    expect(items[1].text).toContain('Design the Flow')
+    expect(items[1].text).toContain('Create mockups')
+  })
+
+  it('handles GFM checkboxes in code-style pre blocks via text fallback', () => {
+    const text = '- [ ] Set up CI\n- [x] Write tests\n- [ ] Deploy to staging\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
+    expect(sourceStructure).toBe('checkbox')
+    expect(items).toHaveLength(3)
+    expect(items[0]).toEqual({ text: 'Set up CI', checked: false })
+    expect(items[1]).toEqual({ text: 'Write tests', checked: true })
+    expect(items[2]).toEqual({ text: 'Deploy to staging', checked: false })
+  })
+
+  it('generic bullet list still parses as unordered', () => {
+    const text = '- Buy milk\n- Walk the dog\n- Call dentist\n'
+    const { items, sourceStructure } = parseChecklistFromText(text, normalizeItemText)
     expect(sourceStructure).toBe('unordered')
-    expect(items[0].text).toBe('Validate the Idea — Talk to users')
-    expect(items[1].text).toBe('Validate the Idea — Sketch flows')
+    expect(items).toHaveLength(3)
+    expect(items[0].text).toBe('Buy milk')
   })
 })
 
@@ -154,6 +217,47 @@ describe('parseChecklistFromHtmlListItems', () => {
     expect(items).toHaveLength(1)
     expect(items[0].text).toContain('Body')
     expect(items[0].text.startsWith('-')).toBe(false)
+  })
+
+  it('groups interleaved ul items under preceding ol items (split lists from media)', () => {
+    const rows = [
+      { text: 'Step 1 title', listKind: 'ordered' as const },
+      { text: 'Supporting detail A', listKind: 'unordered' as const },
+      { text: 'Supporting detail B', listKind: 'unordered' as const },
+      { text: 'Step 2 title', listKind: 'ordered' as const },
+    ]
+    const { items, sourceStructure } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(2)
+    expect(items[0].text).toContain('Step 1 title')
+    expect(items[0].text).toContain('Supporting detail A')
+    expect(items[0].text).toContain('Supporting detail B')
+    expect(items[1].text).toBe('Step 2 title')
+  })
+
+  it('preserves ordered structure when split by media (multiple ol fragments)', () => {
+    const rows = [
+      { text: 'Step before media', listKind: 'ordered' as const },
+      { text: 'Step after media', listKind: 'ordered' as const },
+      { text: 'Final step', listKind: 'ordered' as const },
+    ]
+    const { items, sourceStructure } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
+    expect(sourceStructure).toBe('ordered')
+    expect(items).toHaveLength(3)
+    expect(items.map((i) => i.text)).toEqual([
+      'Step before media',
+      'Step after media',
+      'Final step',
+    ])
+  })
+
+  it('preserves paragraph breaks in multiline ordered li text', () => {
+    const rows = [
+      { text: 'Step title\n\nExplanation paragraph.', listKind: 'ordered' as const },
+      { text: 'Step two', listKind: 'ordered' as const },
+    ]
+    const { items } = parseChecklistFromHtmlListItems(rows, normalizeItemText)
+    expect(items[0].text).toBe('Step title\n\nExplanation paragraph.')
   })
 })
 
@@ -312,5 +416,35 @@ describe('createChecklistRecord', () => {
     })
     expect(record.items.map((i) => i.text)).toEqual(['First', 'Second'])
     expect(record.items.map((i) => i.order)).toEqual([0, 1])
+  })
+})
+
+describe('merge / no-op stability with ordered items', () => {
+  it('ordered record fingerprint is stable for identical captures', () => {
+    const items = [
+      { text: 'Step one', checked: false },
+      { text: 'Step two', checked: false },
+    ]
+    const r1 = createChecklistRecord('c1', items, {
+      sourceChatUrl: 'https://chatgpt.com/c/c1',
+      conversationLabel: null,
+      sourceStructure: 'ordered',
+    })
+    const r2 = createChecklistRecord('c1', items, {
+      sourceChatUrl: 'https://chatgpt.com/c/c1',
+      conversationLabel: null,
+      sourceStructure: 'ordered',
+    })
+    expect(r1.sourceFingerprint).toBe(r2.sourceFingerprint)
+  })
+
+  it('ordered items match by normalized text regardless of number change', () => {
+    const text1 = '1. Research the market\n2. Build the prototype\n'
+    const text2 = '1. Build the prototype\n2. Research the market\n'
+    const parsed1 = parseChecklistFromText(text1, normalizeItemText)
+    const parsed2 = parseChecklistFromText(text2, normalizeItemText)
+    const normalized1 = parsed1.items.map((i) => normalizeItemText(i.text))
+    const normalized2 = parsed2.items.map((i) => normalizeItemText(i.text))
+    expect(new Set(normalized1)).toEqual(new Set(normalized2))
   })
 })

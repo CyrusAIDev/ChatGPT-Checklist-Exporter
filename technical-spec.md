@@ -42,7 +42,22 @@ The text + DOM parser should recognize, without broadening product scope:
 - native `ol` / `ul` list items (document order, including across split lists when each fragment is a real list)
 - GFM task lines: `- [ ] item`, `* [x] item`, plus standalone `[ ]` / `[x]` lines
 - plain numbered lines (`1.`, `2)`, …) and bullets after optional intro prose (intro skipped only when a strong list block is detected)
-- emoji-prefixed numbered section headings (e.g. `🧠 1. Title`) whose following bullets/indents are flattened into prefixed checklist rows
+- emoji-prefixed numbered section headings (e.g. `🧠 1. Title`) whose following bullets/indents become supporting body text under the section parent item
+
+### DOM extraction rules
+- `li` text is extracted as "own text" (nested `ol`/`ul` removed from clone); nested list content is appended as a paragraph-separated supporting body
+- `collectOutermostDirectListItems` filters nested `li` elements to avoid duplicating parent+child
+
+### Ordered structure detection
+- DOM path: when `≥ 2` ordered HTML list items exist, interleaved `ul` items are grouped as supporting text under the preceding `ol` item (handles ChatGPT split-list patterns from media/images)
+- Text path: when `≥ 2` top-level numbered lines or `≥ 1` emoji section heading exists, child/body lines are grouped under each parent step instead of becoming separate checklist items
+- Intro prose before the first strong list block is always skipped
+
+### Ordered rendering rules
+- Step numbers are rendered from array order, not stored source numerals
+- Merge identity is normalized text, not displayed number
+- Ordered rows use a 3-column grid: muted step number, checkbox, content column
+- `OrderedItemBody` splits on `\n\n` to show title + supporting body when multiline
 
 ## Ordered-step preservation rules
 

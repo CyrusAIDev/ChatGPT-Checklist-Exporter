@@ -139,38 +139,109 @@ function isIndentedContinuation(line: string): boolean {
   return /^\s{2,}\S/.test(line)
 }
 
-/** Strip leading markdown-style markers from the first line only; keep following paragraphs. */
+/** Strip leading markdown-style markers from the first line; preserve paragraph breaks. */
 function parseDomListItemText(fullText: string): ParsedItem | null {
   const trimmed = fullText.trim()
   if (!trimmed) return null
-  const lines = trimmed.split(/\r?\n/)
-  let i = 0
-  while (i < lines.length && !lines[i]?.trim()) i++
-  if (i >= lines.length) return null
 
-  const head = parseOneLine(lines[i]!.trim())
+  const paragraphs = trimmed.split(/\n\s*\n/).filter((p) => p.trim())
+  if (paragraphs.length === 0) return null
+
+  const firstPara = paragraphs[0]!
+  const firstLineEnd = firstPara.indexOf('\n')
+  const firstLine = (firstLineEnd >= 0 ? firstPara.slice(0, firstLineEnd) : firstPara).trim()
+
+  const head = parseOneLine(firstLine)
   if (!head) return null
-  const tail = lines.slice(i + 1).join('\n').trim()
-  const text = tail ? `${head.text}\n${tail}`.trim() : head.text
+
+  const restOfFirst = firstLineEnd >= 0 ? firstPara.slice(firstLineEnd + 1).trim() : ''
+  const remainingParagraphs = paragraphs.slice(1).join('\n\n').trim()
+
+  let text = head.text
+  if (restOfFirst) text += '\n' + restOfFirst
+  if (remainingParagraphs) text += '\n\n' + remainingParagraphs
+
+  text = text.trim()
   if (!text) return null
   return { text, checked: head.checked }
 }
 
 /**
- * Parse native HTML list rows (full `li` text, no markdown prefixes).
- * Dedupes by normalized text; preserves order of first occurrence.
+ * When rows have a strong ordered structure, group trailing unordered items
+ * as supporting text under the preceding ordered item.
  */
-export function parseChecklistFromHtmlListItems(
+function parseOrderedHtmlListItems(
   rows: HtmlListItemPayload[],
   normalize: (raw: string) => string,
 ): ParsedMessage {
   const seen = new Set<string>()
   const result: ParsedItem[] = []
-  const structureKinds: Array<'ordered' | 'unordered'> = []
+
+  let currentItem: ParsedItem | null = null
+  const supportingLines: string[] = []
+
+  const flush = () => {
+    if (!currentItem) return
+    const bodyText = supportingLines.join('\n').trim()
+    const finalItem: ParsedItem = bodyText
+      ? { text: `${currentItem.text}\n\n${bodyText}`, checked: currentItem.checked }
+      : currentItem
+    const key = normalize(finalItem.text)
+    if (key && !seen.has(key)) {
+      seen.add(key)
+      result.push(finalItem)
+    }
+    currentItem = null
+    supportingLines.length = 0
+  }
+
   for (const row of rows) {
     const text = row.text.trim()
     if (!text) continue
-    const item = parseDomListItemText(text)
+    if (row.listKind === 'ordered') {
+      flush()
+      currentItem = parseDomListItemText(text)
+    } else if (currentItem) {
+      const parsed = parseDomListItemText(text)
+      if (parsed) supportingLines.push(parsed.text)
+    } else {
+      const parsed = parseDomListItemText(text)
+      if (parsed) {
+        const key = normalize(parsed.text)
+        if (key && !seen.has(key)) {
+          seen.add(key)
+          result.push(parsed)
+        }
+      }
+    }
+  }
+  flush()
+
+  return { items: result, sourceStructure: 'ordered' }
+}
+
+/**
+ * Parse native HTML list rows (full `li` text, no markdown prefixes).
+ * Dedupes by normalized text; preserves order of first occurrence.
+ * When a strong ordered structure is detected, groups unordered children
+ * under their preceding ordered parent.
+ */
+export function parseChecklistFromHtmlListItems(
+  rows: HtmlListItemPayload[],
+  normalize: (raw: string) => string,
+): ParsedMessage {
+  const live = rows.filter((r) => r.text.trim().length > 0)
+  const orderedCount = live.filter((r) => r.listKind === 'ordered').length
+
+  if (orderedCount >= 2) {
+    return parseOrderedHtmlListItems(live, normalize)
+  }
+
+  const seen = new Set<string>()
+  const result: ParsedItem[] = []
+  const structureKinds: Array<'ordered' | 'unordered'> = []
+  for (const row of live) {
+    const item = parseDomListItemText(row.text)
     if (!item) continue
     const key = normalize(item.text)
     if (!key || seen.has(key)) continue
@@ -185,13 +256,90 @@ export function parseChecklistFromHtmlListItems(
 }
 
 /**
+ * When the text has a strong ordered structure (top-level numbered lines or
+ * emoji section headings), group child/body lines under each parent step.
+ */
+function parseOrderedTextWithGrouping(
+  lines: string[],
+  normalize: (raw: string) => string,
+): ParsedMessage {
+  const seen = new Set<string>()
+  const result: ParsedItem[] = []
+
+  let currentHead: ParsedItem | null = null
+  const bodyLines: string[] = []
+
+  const flush = () => {
+    if (!currentHead) return
+    const bodyText = bodyLines
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .join('\n')
+      .trim()
+    const finalItem: ParsedItem = bodyText
+      ? { text: `${currentHead.text}\n\n${bodyText}`, checked: currentHead.checked }
+      : currentHead
+    const key = normalize(finalItem.text)
+    if (key && !seen.has(key)) {
+      seen.add(key)
+      result.push(finalItem)
+    }
+    currentHead = null
+    bodyLines.length = 0
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+
+    const headingTitle = matchEmojiSectionHeading(line)
+    if (headingTitle) {
+      flush()
+      currentHead = { text: headingTitle, checked: false }
+      continue
+    }
+
+    if (NUMBERED.test(trimmed) && !isIndentedContinuation(line)) {
+      flush()
+      currentHead = parseOneLine(trimmed)
+      continue
+    }
+
+    if (currentHead) {
+      const bodyItem = parseOneLine(trimmed)
+      if (bodyItem) {
+        bodyLines.push(bodyItem.text)
+      } else if (isIndentedContinuation(line)) {
+        bodyLines.push(trimmed)
+      }
+      continue
+    }
+
+    if (isListLine(line)) {
+      const item = parseOneLine(trimmed)
+      if (item) {
+        const key = normalize(item.text)
+        if (key && !seen.has(key)) {
+          seen.add(key)
+          result.push(item)
+        }
+      }
+    }
+  }
+  flush()
+
+  return { items: result, sourceStructure: 'ordered' }
+}
+
+/**
  * Parse text into list items. Uses line-based parsing; keeps only lines that
  * look like bullets, numbered items, or markdown checkboxes. Dedupes by
  * normalized text (exact duplicate normalized items kept once).
  * Source structure is inferred from every list-looking line (before dedupe).
  *
- * Also: skips leading intro prose before the first list block; treats
- * emoji-prefixed numbered headings as section containers for following action lines.
+ * Also: skips leading intro prose before the first list block; when a strong
+ * ordered structure is detected (numbered lines or emoji section headings),
+ * groups child lines under each parent step.
  */
 export function parseChecklistFromText(
   text: string,
@@ -201,68 +349,36 @@ export function parseChecklistFromText(
   const start = introStartIndex(rawLines)
   const lines = rawLines.slice(start)
 
+  const topLevelNumbered = lines.filter((l) => {
+    const t = l.trim()
+    return NUMBERED.test(t) && !isIndentedContinuation(l)
+  }).length
+  const emojiSections = lines.filter((l) => matchEmojiSectionHeading(l) !== null).length
+
+  if (topLevelNumbered >= 2 || emojiSections >= 1) {
+    return parseOrderedTextWithGrouping(lines, normalize)
+  }
+
   const seen = new Set<string>()
   const result: ParsedItem[] = []
   const lineKinds: ListLineKind[] = []
 
-  let sectionTitle: string | null = null
-  let blankRun = 0
-
-  const appendDeduped = (item: ParsedItem) => {
-    const key = normalize(item.text)
-    if (!key || seen.has(key)) return
-    seen.add(key)
-    result.push(item)
-  }
-
   for (let idx = 0; idx < lines.length; idx++) {
     const line = lines[idx] ?? ''
     const trimmed = line.trim()
-    if (!trimmed) {
-      blankRun++
-      if (sectionTitle && blankRun >= 2) sectionTitle = null
-      continue
-    }
-    blankRun = 0
-
-    const headingTitle = matchEmojiSectionHeading(line)
-    if (headingTitle) {
-      sectionTitle = headingTitle
-      continue
-    }
-
-    if (sectionTitle) {
-      const child = parseSectionChildLine(line, sectionTitle)
-      if (child) {
-        lineKinds.push(isListLine(line) ? classifyListLine(line) : 'bullet')
-        appendDeduped(child)
-        continue
-      }
-      sectionTitle = null
-    }
+    if (!trimmed) continue
 
     if (!isListLine(line)) continue
     lineKinds.push(classifyListLine(line))
     const item = parseOneLine(line)
     if (!item) continue
-    appendDeduped(item)
+    const key = normalize(item.text)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    result.push(item)
   }
 
   return { items: result, sourceStructure: inferSourceStructureFromLineKinds(lineKinds) }
-}
-
-function parseSectionChildLine(line: string, sectionTitle: string): ParsedItem | null {
-  const trimmed = line.trim()
-  if (!trimmed) return null
-  if (isListLine(line)) {
-    const parsed = parseOneLine(trimmed)
-    if (!parsed) return null
-    return { text: `${sectionTitle} — ${parsed.text}`, checked: parsed.checked }
-  }
-  if (isIndentedContinuation(line)) {
-    return { text: `${sectionTitle} — ${trimmed}`, checked: false }
-  }
-  return null
 }
 
 /**

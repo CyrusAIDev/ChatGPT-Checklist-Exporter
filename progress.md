@@ -1,8 +1,8 @@
 # Progress
 
-**Progress bar:** `[########-] 90%`
-**Current phase:** S1 — Ordered-step preservation (still in progress)
-**Current focus:** S1 stabilization — parser edge cases (GFM `- [ ]`, intro + numbered list, emoji section headings, companion `<pre>` text) and ordered-row layout in the side panel; merge and normalization unchanged.
+**Progress bar:** `[#########] 95%`
+**Current phase:** S1 — Ordered-step preservation (complete, pending manual QA)
+**Current focus:** Manual QA of S1 parser/ordered stabilization; then S2 AI Clean Up
 
 ## Completed
 - polished side-panel MVP
@@ -12,14 +12,22 @@
 - current chat + library view switching
 - search/sort/open-original-chat library behavior
 - S1 partial: `sourceStructure` on records, numbered UI when ordered, merge identity by normalized text; chat + library detail
-- S1 stabilization pass: GFM task list parsing, intro skip before strong lists, emoji section heading + child bullets → flat prefixed items, `innerText` + standalone task-like `<pre>` in latest message text, ordered row grid (step / checkbox / content) + optional title vs body split for multiline ordered items
+- S1 stabilization pass 1: GFM task list parsing, intro skip before strong lists, `innerText` + standalone task-like `<pre>` in latest message text
+- **S1 stabilization pass 2 (this checkpoint):**
+  - DOM extraction: `li.innerText` replaced with own-text extraction (nested `ol`/`ul` removed from primary text, appended as paragraph-separated supporting body)
+  - Parser: `parseDomListItemText` preserves paragraph breaks (`\n\n`) so `OrderedItemBody` can split title from body
+  - Parser: ordered HTML grouping — interleaved `ul` items grouped as supporting text under preceding `ol` items when strong ordered structure detected
+  - Parser: ordered text grouping — numbered lines or emoji section headings become parent items; child bullets/text grouped as body
+  - Parser: emoji section headings produce a single ordered parent item per section (no longer flattened into child-only prefixed rows)
+  - Parser: intro prose still skipped before strong list blocks
+  - Ordered-row CSS: tighter grid columns, more vertical breathing room, step number more muted/secondary
+  - 41 parser tests passing (new: nested bullets under ordered parents, interleaved ol/ul grouping, emoji parent sections, GFM checkboxes, intro+list, media split, merge fingerprint stability)
 
 ## In Progress
-- **S1 — Ordered-step preservation** (remaining manual QA: real ChatGPT threads — GFM tasks, intro+list, media between steps, emoji sections; merge/no-op; library detail ordered layout)
-- doc sync for the post-library stage (other control docs may still be edited locally)
+- **S1 manual QA** — real ChatGPT threads: GFM tasks, intro+list, numbered+nested, media between steps, emoji sections, merge/no-op, library detail ordered layout
 
 ## Next
-- Finish S1 verification, then S2 AI Clean Up MVP
+- S2 AI Clean Up MVP
 - S3 launch assets / icon / listing
 - launch submission + sharing
 
@@ -28,7 +36,7 @@
 
 ## Decisions locked
 - library is already built; do not rebuild it
-- current next feature is not “more polish”
+- current next feature is not "more polish"
 - preserve ordered source structure when the source is sequential
 - first AI action = AI Clean Up
 - AI must be assistive, preview-first, and narrow
