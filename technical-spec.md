@@ -1,218 +1,166 @@
-# Technical Spec — Premium Polish Sprint
+# Technical Spec — Ordered Steps + AI Clean Up
 
 ## Primary rule
-Protect the working core. Improve presentation and small product-facing behavior only.
+Protect the working core. Extend it narrowly.
+
+## Current repo reality
+Already built and should be preserved:
+- polished side panel
+- merge/storage hardening
+- checklist library
+- current chat + library view switching
+
+Do not re-solve already solved work.
 
 ## Protected code areas
-Do not casually rewrite these:
+Do not casually rewrite:
 - `src/lib/merge/*`
 - `src/lib/storage/*`
-- `src/lib/chatgpt/parse-checklist.ts`
-- `src/lib/chatgpt/normalize-item.ts`
 - `src/lib/chatgpt/extract-latest-assistant-message.ts`
+- `src/lib/chatgpt/normalize-item.ts`
 - `src/types/checklist.ts`
 
-These files define the actual MVP and are the highest regression risk.
+These are core behavior files.
 
 ## Allowed change areas
-Safe primary change areas:
+Primary safe areas:
+- `src/lib/chatgpt/parse-checklist.ts`
+- `src/types/checklist.ts`
 - `src/entrypoints/sidepanel/App.tsx`
 - `src/components/*`
+- `src/components/library/*`
 - `src/styles/sidepanel.css`
-- `src/entrypoints/sidepanel/*`
-- `public/*` branding assets
 
-Limited change areas:
-- `src/entrypoints/background.ts`
-- `src/types/messages.ts`
+Secondary allowed areas:
+- storage repo/query helpers
+- small new helper files under `src/lib/chatgpt/*` or `src/lib/ai/*`
+- `src/types/messages.ts` only if needed
 
-Only touch limited areas if required for:
-- clearer ChatGPT-first behavior
-- cleaner panel relevance
-- recovery reliability
-- future seam preservation
+## Ordered-step preservation rules
 
-## UI architecture cleanup allowed
-Allowed:
-- split large sidepanel UI into small presentational components
-- move render-only chunks out of `App.tsx`
-- extract repeated state-card UI
-- extract checklist list / archive / action bar UI
-- centralize copy strings if it reduces duplication
+### Required model extension
+Add the smallest clean structure metadata needed to preserve presentation.
 
-Not allowed:
-- introducing a large state machine library
-- changing the core data flow
-- moving business logic out of current core files without a bug-driven reason
-- broad folder re-org
+Preferred direction:
+- record-level source structure field, e.g.
+  - `ordered`
+  - `unordered`
+  - `checkbox`
+  - `mixed` only if truly needed
 
-## Recommended component extraction ceiling
-Keep it small.
-Good targets:
-- `PanelHeader`
-- `StatusCard`
-- `ActionBar`
-- `ChecklistList`
-- `ArchivedSection`
-- `ResetConfirmDialog`
+Bias:
+- keep this at record level unless the code clearly needs more detail
+- do not create a big schema
 
-Rule:
-- `App.tsx` can still own orchestration state
-- extracted components should be mostly presentational
-- business rules stay near current handlers
+### Extraction rules
+When parsing the latest assistant reply:
+- preserve whether the source came from ordered list structure
+- preserve whether the source came from unordered/checkbox structure
+- do not use visible numbering as item identity
 
-## Styling and token rules
-Use one deliberate token system in `sidepanel.css`.
+### Merge rules
+Merge must continue to match by normalized text, not visible step number.
 
-### Required token groups
-- app background
-- panel/surface
-- subtle surface
-- strong text
-- muted text
-- border
-- accent
-- accent hover/pressed
-- danger
-- focus ring
-- radius
-- spacing scale
-- type scale
-- shadow (minimal)
+Meaning:
+- if step 2 becomes step 3 because order changed, matching should still work by text
+- reorder-only changes should still update order
+- step numbering is presentation, not identity
 
-### Starting palette
-Use this unless contrast fails:
-- background: warm neutral
-- panel: white
-- subtle surface: very light neutral
-- text strong: deep ink/slate
-- text muted: cool gray
-- accent: muted evergreen
-- danger: muted brick
-
-Suggested first-pass values:
-- `--bg-app: #f6f4ef`
-- `--bg-panel: #ffffff`
-- `--bg-subtle: #f3f4f6`
-- `--text-strong: #18202a`
-- `--text-muted: #5d6773`
-- `--border: #e7e1d7`
-- `--accent: #2f6b57`
-- `--accent-hover: #255847`
-- `--danger: #a14a3b`
-- `--focus: #2f6b57`
-
-### Typography rules
-No custom font loading.
-Use system stack only.
-
-Use only:
-- title
-- section/meta
-- body
-- micro/meta
-
-Weight discipline:
-- 600 for titles
-- 500 for actions/section labels
-- 400 for body
-
-Do not add decorative type.
-
-### Spacing rules
-- prefer larger vertical rhythm over dense packing
-- keep one-column layout
-- list rows should breathe
-- state cards should not feel cramped
-- avoid tiny gaps and avoid oversized empty holes
-
-## Button hierarchy rules
-Exactly three levels:
-- primary
-- secondary
-- destructive
-
-Rules:
-- only one obvious primary action per surface
-- destructive action must be visually separated
-- no ghost buttons unless clearly secondary and text-light
-- loading/disabled states must remain readable
-
-## State-handling rules
-Keep the existing state model.
-Do not invent new product states unless needed for clarity.
-
-Required treatment:
-- loading
-- unsupported page / no conversation
-- no response / retry
-- generating
-- no assistant content
-- no checklist yet
-- merge success / already up to date
-- wrong conversation
-- reset confirmation
-
-Rules:
-- every state must answer “what is happening” and “what should I do next”
-- copy must be short
-- error surfaces must not feel alarming unless action is destructive
-- info surfaces must be calmer than errors
-
-## Accessibility and usability constraints
-Must keep or add:
-- keyboard operable buttons
-- visible focus states
-- proper button semantics
-- checkbox label clickability
-- readable contrast
-- `aria-live` only where actually useful
-- no motion dependency
+### Rendering rules
+For ordered records:
+- render numbered step markers
+- keep check/uncheck behavior unchanged
+- keep archived section behavior unchanged
 
 Do not:
-- hide important meaning by color alone
-- rely on hover for critical behavior
-- make archive/reset hard to understand
+- build subtasks
+- build nested workflow UI
+- build dependencies
 
-## ChatGPT-first behavior rule
-Current product stays centered on ChatGPT conversations.
+## AI Clean Up rules
 
-During this sprint:
-- optimize create/merge flows for saved ChatGPT conversations
-- do not add browsing-time checklist workflows yet
-- do not use copy that implies the product will never work elsewhere
+### Product boundary
+One narrow assistive action only:
+- `AI Clean Up`
 
-Good copy pattern:
-- “Open a saved ChatGPT conversation to create or update a checklist.”
+No other AI actions in this milestone.
 
-Avoid copy pattern:
-- “This extension is only useful on ChatGPT.”
+### Action behavior
+Input:
+- current saved checklist record
+- active items only
+- optional archived items ignored for the cleanup pass
 
-## Future compatibility rules
-Preserve clean seams for:
-- checklist library across conversations
-- use of saved checklists while browsing other sites
-- one paid AI action
+Output:
+- proposed cleaned active item list
+- no direct write on generation
+- preview before apply
 
-Do this by:
-- keeping checklist records conversation-keyed
-- not hard-coding UI language around “only one place forever”
-- keeping sidepanel UI modular enough to later support a library surface
-- keeping AI as a later transform step on checklist content, not a core dependency
+### AI output constraints
+AI must not:
+- invent a large new plan
+- add dates/priorities/tags
+- create subtasks
+- change the product into a planner
 
-Do not build future features now.
+AI may:
+- tighten wording
+- remove obvious duplicates
+- standardize phrasing
+- lightly clarify vague items
+
+### Apply behavior
+Applying AI Clean Up should:
+- preserve checked state conservatively where matches are clear
+- preserve archived items unless intentionally untouched
+- use a deterministic apply path
+- avoid silent destructive overwrite
+
+Preferred implementation direction:
+- treat AI output as a proposed revised active-item list
+- apply through a deterministic transformation layer
+- reuse existing merge/matching logic where sensible instead of inventing a separate state system
+
+### Provider seam
+Keep the provider seam small and swappable.
+Do not build a large provider abstraction.
+
+## UI rules
+- AI action available only when a saved checklist exists
+- show action in:
+  - current chat checklist view
+  - library detail view
+- preview must be readable and compact
+- one clear primary action:
+  - `Apply clean up`
+- one safe exit:
+  - `Cancel`
+
+## Accessibility/usability rules
+- AI preview must be easy to scan
+- no auto-apply
+- no hidden destructive behavior
+- step numbering must remain readable at small side-panel width
+- focus states must remain visible
 
 ## Testing rules
 Cursor should do as much verification as possible.
 
-Default:
-- run `npm run build` after each completed phase
-- run targeted tests when touching logic
-- run full `npm test` before closing the sprint
+Required for ordered-step work:
+- parse ordered source and preserve structure
+- ordered records render in order
+- merge still matches by normalized text, not visible number
 
-Manual QA should stay minimal and high-value.
+Required for AI Clean Up:
+- preview state appears only for saved checklist
+- apply preserves checked state where expected
+- cancel leaves record unchanged
+- library detail and current chat both still work after AI code lands
 
-If local dependency state is broken because the uploaded repo contains stale `node_modules`:
-- do one clean reinstall
-- continue
-- do not turn dependency cleanup into a project
+## Stop rules
+Do not:
+- redesign the panel again
+- add more AI actions
+- add billing
+- add backend-heavy architecture
+- refactor the app into a large state machine

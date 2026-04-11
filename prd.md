@@ -1,136 +1,119 @@
-# PRD — Premium Polish Sprint
+# PRD — Post-Library Execution Upgrade
 
 ## Product
-A calm premium execution layer for ChatGPT conversations.
+A calm, local-first execution layer for ChatGPT conversations.
 
-Working model:
+Current product shape:
 - one living checklist per conversation
-- local-first
 - deterministic merge
 - checked state preserved across revisions
 - removed items archived
-- reset supported
+- cross-conversation library available in the side panel
+- usable on ChatGPT and while browsing elsewhere in Chrome
 
 ## Who this is for
-Solo operator / builder / consultant who uses ChatGPT to create and revise plans, but does not want to manually re-copy tasks into another tool.
+Solo operator / builder / consultant who uses ChatGPT to generate plans, then wants to actually execute them without re-copying work into another app.
 
 ## Core promise
-Turn the latest structured ChatGPT output into a living checklist that survives revisions.
+Turn ChatGPT plans into living checklists that stay useful across revisions and across conversations.
 
-## What premium means here
-Premium does **not** mean more features.
+## Current stage
+The premium polish sprint and checklist library are already done.
 
-Premium means:
-- clear hierarchy
-- calm spacing
-- readable rows
-- obvious primary action
-- polished empty/error/info states
-- trustworthy local behavior
-- coherent icon/copy/color system
-- no “AI-generated extension shell” feeling
+This next stage is:
+1. preserve ordered step-by-step structure when the source is sequential
+2. build one paid-worthy assistive AI action: AI Clean Up
+3. prepare launch assets after that
 
-## Naming direction
-Provisional only.
-- Use a short ownable product name
-- Keep “for ChatGPT” as descriptor, not primary brand
-- Do not lock final name in code or copy during this sprint
+## What premium means now
+Premium does not mean more surface area.
 
-## Current source of truth
-The current repo is implementation truth.
-Protect the working MVP. Improve the shell around it.
+Premium now means:
+- the checklist respects the source format better
+- step-by-step plans still feel like steps
+- the library is useful anywhere in Chrome
+- one assistive AI action saves meaningful time
+- preview-before-apply builds trust
+- nothing breaks the deterministic local-first core
 
-## Sprint goal
-Make the current MVP feel paid-worthy and ship-worthy without changing the core product model.
+## This stage’s goals
 
-At the end of this sprint, the product should feel:
-- calmer
-- more intentional
-- easier to scan
-- more trustworthy
-- more brand-coherent
-- ready for screenshots and early paid validation
+### Goal 1 — Ordered-step preservation
+If ChatGPT gives a numbered sequence or true step-by-step output, the extension should preserve that structure visually.
 
-## What must not break
+It should still be a checklist.
+It should not become a workflow engine.
+
+### Goal 2 — AI Clean Up MVP
+Add one narrow assistive AI action that makes a saved checklist cleaner and easier to execute.
+
+The AI action should:
+- tighten wording
+- remove obvious duplicates
+- standardize phrasing
+- keep the checklist flat and practical
+- show preview before apply
+
+## Must not break
 - conversation-based checklist identity
-- create checklist from latest assistant output
+- capture from latest assistant output
 - merge latest without losing matched checked state
-- archiving of removed items
-- reset flow
+- archive behavior
+- reset behavior
 - local-first storage
-- deterministic behavior
-- ChatGPT-first side panel flow
+- library list/detail behavior
+- check/uncheck persistence
+- original chat deep link from library
 
 ## In scope now
-- premium visual system
-- cleaner header and panel shell
-- button hierarchy
-- checklist row polish
-- archived section polish
-- empty/error/info/loading state polish
-- copy cleanup
-- light UI component extraction
-- minimal behavior tweaks that improve product relevance or shipping confidence
+- preserve ordered vs unordered source structure
+- render ordered checklists as numbered steps
+- keep merge matching based on normalized text, not visible numbers
+- AI Clean Up MVP with preview/apply
+- compact doc updates that keep Cursor aligned
+- minimal UI needed for the AI action
 
 ## Out of scope now
 Do not build:
-- task manager features
-- workspace features
-- team features
 - cloud sync
+- team features
+- tags / priorities / due dates
+- subtasks
+- folders/projects
+- multiple AI actions
+- AI workspace features
 - backend-heavy systems
 - billing
-- multiple premium AI actions
-- library UI
-- popup/options scope
-- drag and drop
-- due dates / priorities / tags
-- random refactors
-- merge/storage rewrites
+- popup/options detours
+- broad refactors
 
-## Product direction to encode
-This is:
-- ChatGPT-first
-- conversation-first
-- execution-first
-- calm and local-first
+## Ordered-step rule
+When the source is step-by-step, preserve that presentation.
 
-This is **not**:
-- ChatGPT-only forever as philosophy
-- a general browser productivity suite
-- a broad AI platform
+Good:
+- numbered visual treatment
+- same check/uncheck behavior
+- same merge logic
 
-## Future compatibility to preserve
-Do not build these now, but do not block them:
+Bad:
+- turning every ordered sequence into a generic unordered list
+- using step numbers as merge identity
+- adding workflow complexity
 
-### 1. Checklist library across conversations
-Future shape:
-- local-first list of saved checklists
-- access to saved checklists outside the active conversation
-- usable while browsing other sites
+## AI Clean Up rule
+AI stays assistive, not central.
 
-### 2. One paid AI action
-Likely first candidate:
-- AI Clean Up
+The first paid AI action should:
+- operate on one saved checklist at a time
+- work from current chat checklist and library detail
+- produce a preview
+- require user apply
+- not silently overwrite the checklist
 
-But do not hard-lock it if later library/design work reveals a better first paid assistive action.
-
-Rule:
-- AI stays assistive, not central
-
-## Success bar for this sprint
-The sprint is successful when:
-- the product feels like a focused premium extension
-- the MVP still works exactly as expected
-- all major user states feel deliberate
-- screenshots look credible
-- Cursor has not introduced feature creep
-
-## Stop condition
-Stop polishing when:
-- hierarchy is clear
-- all key states are coherent
-- the list is easy to scan
-- the archive feels deliberate
-- the product looks shippable
-- further work would mostly be taste, not product value
+## Success bar
+This stage is successful when:
+- step-by-step outputs stay visibly ordered
+- library remains stable
+- AI Clean Up produces useful previewable edits
+- apply preserves trust and checked-state behavior
+- the product feels more worth paying for without turning into a bigger app

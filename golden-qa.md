@@ -1,30 +1,26 @@
 # Golden QA
 
-Use this to stop polish work from breaking the MVP.
+Use this to stop new work from breaking the product now that library exists.
 
 ## Rules
 - test from the user point of view
 - prefer real flows over theory
-- do not add scope during QA
-- if core behavior regresses, stop and fix it before more polish
+- if a core flow regresses, stop and fix it before adding more features
 
 ## Critical user flows
 
-### 1. Create checklist
+### 1. Capture from current chat
 - open a saved `chatgpt.com/c/...` conversation
-- generate a structured plan
-- open side panel
-- create checklist
+- capture checklist from latest assistant reply
 
 Pass:
 - checklist appears
 - rows are readable
-- primary action is obvious
+- active checklist is usable
 
 ### 2. Persist checked state
 - check a few items
-- reload the tab
-- reopen panel
+- reload tab or reopen panel elsewhere
 
 Pass:
 - checklist remains
@@ -32,58 +28,68 @@ Pass:
 
 ### 3. Merge revised plan
 - ask ChatGPT to revise the plan
-- wait until generation finishes
 - merge latest
 
 Pass:
 - matched items keep checked state
 - new items appear
-- removed items move to archive
+- removed items archive
 - no duplicates
 
 ### 4. No-op merge
-- merge again without a new revision
+- merge again without a meaningful source change
 
 Pass:
-- clear “already up to date” feedback
+- shows calm already-up-to-date feedback
+- no meaningless merge summary
 - no corruption
-- no duplicate rows
 
-### 5. Archived section
-- expand archive after a merge that removed items
+### 5. Library works outside ChatGPT
+- open side panel on a non-ChatGPT site
+- open Library
+- open a saved checklist
+- check/uncheck an item
 
 Pass:
-- archive is secondary
-- archived items are readable
-- archive does not visually compete with active items
+- library is useful
+- state persists
+- original chat opens correctly
 
-### 6. Reset
-- click reset
-- cancel
-- click reset again
-- confirm
+### 6. Ordered step-by-step output
+- ask ChatGPT for a clearly numbered process
+- capture checklist
+- later revise and merge it
+
+Pass:
+- checklist renders as ordered steps
+- merge keeps ordered presentation
+- checked state still behaves correctly
+
+### 7. Reset remains safe
+- reset checklist
+- cancel once
+- confirm once
 
 Pass:
 - cancel changes nothing
-- confirm clears only this conversation checklist
-- destructive action is clear
+- confirm clears only that conversation record
+- destructive hierarchy remains clear
 
-### 7. Unsupported / non-ready states
-Test:
-- non-ChatGPT page
-- unsaved ChatGPT page
-- generating state
-- no assistant content state
+### 8. AI Clean Up preview/apply
+- run AI Clean Up on a saved checklist
+- cancel once
+- run again and apply
 
 Pass:
-- message is short
-- next action is clear
-- UI still feels calm and coherent
+- preview is understandable
+- cancel leaves checklist unchanged
+- apply updates only that checklist
+- checked state remains sensible after apply
 
 ## Fail immediately if
-- conversation detection gets weaker
-- persistence breaks
-- merge logic changes unexpectedly
-- archive behavior gets confusing
-- reset becomes unclear
-- the panel looks prettier but is harder to use
+- current chat capture gets weaker
+- merge behavior becomes unpredictable
+- library persistence breaks
+- ordered steps get flattened again
+- AI auto-applies without review
+- the product gains scope that feels like a task manager
