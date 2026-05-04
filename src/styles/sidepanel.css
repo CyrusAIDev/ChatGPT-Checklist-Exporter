@@ -869,6 +869,15 @@ body,
   max-width: 36ch;
 }
 
+/* Header origin accent colours */
+.sidepanel-header--chatgpt .header-eyebrow {
+  color: #10A37F;
+}
+
+.sidepanel-header--claude .header-eyebrow {
+  color: #7C3AED;
+}
+
 /* Action bar tool buttons (Export / Share) */
 .sidepanel .checklist-action-tools {
   display: flex;

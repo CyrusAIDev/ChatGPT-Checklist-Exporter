@@ -9,6 +9,7 @@ import type {
 } from '../types/messages'
 
 const CHATGPT_ORIGIN = 'https://chatgpt.com'
+const CLAUDE_ORIGIN = 'https://claude.ai'
 
 function isDev(): boolean {
   return typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
@@ -121,12 +122,14 @@ export default defineBackground(() => {
         }
         try {
           const url = new URL(tab.url)
-          if (url.origin !== CHATGPT_ORIGIN) {
-            if (isDev()) console.log('[Living Checklist] Active tab resolution: not chatgpt', tab.url)
+          const isSupportedOrigin =
+            url.origin === CHATGPT_ORIGIN || url.origin === CLAUDE_ORIGIN
+          if (!isSupportedOrigin) {
+            if (isDev()) console.log('[Living Checklist] Active tab resolution: not supported', tab.url)
             sendResponse({ ok: false, error: 'not_chatgpt' })
             return
           }
-          if (isDev()) console.log('[Living Checklist] Active tab resolution: chatgpt tab', tab.id, tab.url)
+          if (isDev()) console.log('[Living Checklist] Active tab resolution: supported tab', tab.id, tab.url)
           chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATE' }, (payload: PageStatePayload) => {
             if (chrome.runtime.lastError) {
               if (isDev()) console.log('[Living Checklist] Content script response error', chrome.runtime.lastError.message)

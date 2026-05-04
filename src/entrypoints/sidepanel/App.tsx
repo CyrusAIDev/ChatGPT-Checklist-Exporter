@@ -21,7 +21,7 @@ import {
   sortChecklistsByUpdatedDesc,
 } from '../../lib/library/library-query'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
-import { PanelHeader } from '../../components/PanelHeader'
+import { PanelHeader, type ActiveOrigin } from '../../components/PanelHeader'
 import { PanelViewSwitcher } from '../../components/PanelViewSwitcher'
 import { PanelStateCard } from '../../components/PanelStateCard'
 import { ArchivedChecklistSection } from '../../components/ArchivedChecklistSection'
@@ -39,6 +39,7 @@ const isDev = (): boolean =>
   typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true
 
 const CHATGPT_ORIGIN = 'https://chatgpt.com'
+const CLAUDE_ORIGIN = 'https://claude.ai'
 const PAGE_STATE_RETRY_ATTEMPTS = 3
 const PAGE_STATE_RETRY_DELAY_MS = 200
 const RECOVERY_POLL_INTERVAL_MS = 500
@@ -91,13 +92,14 @@ function fetchFreshPageState(): Promise<GetPageStateForActiveTabResponse> {
 type SidepanelLayoutProps = {
   panelView: 'chat' | 'library'
   onPanelViewChange: (v: 'chat' | 'library') => void
+  activeOrigin?: ActiveOrigin
   children: ReactNode
 }
 
-function SidepanelLayout({ panelView, onPanelViewChange, children }: SidepanelLayoutProps) {
+function SidepanelLayout({ panelView, onPanelViewChange, activeOrigin, children }: SidepanelLayoutProps) {
   return (
     <div className="sidepanel">
-      <PanelHeader />
+      <PanelHeader activeOrigin={activeOrigin} />
       <PanelViewSwitcher value={panelView} onChange={onPanelViewChange} />
       {children}
     </div>
@@ -116,6 +118,7 @@ function App() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [refreshingTab, setRefreshingTab] = useState(false)
 
+  const [activeTabUrl, setActiveTabUrl] = useState<string | null>(null)
   const [panelView, setPanelView] = useState<'chat' | 'library'>('chat')
   const [initialViewSet, setInitialViewSet] = useState(false)
   const [librarySearch, setLibrarySearch] = useState('')
@@ -176,7 +179,15 @@ function App() {
     })
   }
 
+  // Track the active tab URL for header branding
+  const updateActiveTabUrl = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      setActiveTabUrl(tabs[0]?.url ?? null)
+    })
+  }
+
   useEffect(() => {
+    updateActiveTabUrl()
     loadPageState()
   }, [])
 
@@ -207,6 +218,7 @@ function App() {
       })
     }
     const onTabActivated = () => {
+      updateActiveTabUrl()
       reFetchFromTabReady()
     }
     chrome.tabs.onUpdated.addListener(onTabUpdated)
@@ -547,9 +559,21 @@ function App() {
     filterChecklistsByQuery(libraryRecords, librarySearch),
   )
 
+  const activeOrigin: ActiveOrigin = (() => {
+    try {
+      if (!activeTabUrl) return 'other'
+      const origin = new URL(activeTabUrl).origin
+      if (origin === CHATGPT_ORIGIN) return 'chatgpt'
+      if (origin === CLAUDE_ORIGIN) return 'claude'
+    } catch {
+      // ignore
+    }
+    return 'other'
+  })()
+
   if (panelView === 'library') {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         {error ? (
           <div className="state-banner state-banner--error" role="alert">
             <p className="state-banner-text">{error}</p>
@@ -581,7 +605,7 @@ function App() {
 
   if (pageState === 'loading') {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard tone="muted">
           <p className="state-body">Checking this tab…</p>
         </PanelStateCard>
@@ -591,7 +615,7 @@ function App() {
 
   if (pageError === 'no_tab') {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard>
           <p className="state-body">
             Open a saved ChatGPT thread in this window for capture, or use Library to open a saved checklist.
@@ -603,7 +627,7 @@ function App() {
 
   if (pageError === 'no_response') {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard
           title="Can’t read this tab"
           actions={
@@ -628,7 +652,7 @@ function App() {
 
   if (pageError === 'not_chatgpt') {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard>
           <p className="state-body">
             Capture and merge run on saved ChatGPT threads. Switch to Library to continue checklists you already saved,
@@ -641,7 +665,7 @@ function App() {
 
   if (pageState === null) {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard>
           <p className="state-body">
             Open a saved conversation (<span className="state-nowrap">chatgpt.com/c/…</span>) to create or update a
@@ -654,7 +678,7 @@ function App() {
 
   if (!pageState.supported) {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard>
           <p className="state-body">
             Saved conversations use a URL like <span className="state-nowrap">chatgpt.com/c/…</span>. Save this chat
@@ -667,7 +691,7 @@ function App() {
 
   if (pageState.isGenerating) {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard title="Reply in progress" tone="hold">
           <p className="state-body state-body--secondary">
             Wait for the answer to finish. Then capture or merge from that message.
@@ -679,7 +703,7 @@ function App() {
 
   if (pageState.ambiguousResponseVersions) {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard
           title="Choose a response version"
           tone="info"
@@ -704,7 +728,7 @@ function App() {
 
   if (!hasAssistantContent) {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard
           title="No assistant message in view yet"
           tone="info"
@@ -729,7 +753,7 @@ function App() {
 
   if (checklist && pageState.conversationId !== checklist.conversationId) {
     return (
-      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+      <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard
           title="Different conversation"
           actions={
@@ -751,7 +775,7 @@ function App() {
   const allDone = totalCount > 0 && completedCount === totalCount
 
   return (
-    <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
+    <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
       {error ? (
         <div className="state-banner state-banner--error" role="alert">
           <p className="state-banner-text">{error}</p>

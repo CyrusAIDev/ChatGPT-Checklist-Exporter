@@ -17,7 +17,7 @@ export default defineConfig({
       },
     },
     permissions: ['storage', 'sidePanel', 'tabs'],
-    host_permissions: ['https://chatgpt.com/*'],
+    host_permissions: ['https://chatgpt.com/*', 'https://claude.ai/*'],
     side_panel: {
       default_path: 'sidepanel.html',
     },
