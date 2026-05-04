@@ -51,3 +51,12 @@ export type OpenChatUrlInNewTabResponse = { ok: true } | { ok: false; error: str
 export type OpenChatgptHomeRequest = { type: 'OPEN_CHATGPT_HOME' }
 
 export type OpenChatgptHomeResponse = { ok: true } | { ok: false; error: string }
+
+/**
+ * Sent by a content script to the side panel when a ?sharedplan= URL param is detected.
+ * The side panel saves the payload and shows a "Shared plan imported" banner.
+ */
+export type ImportSharedPlanMessage = {
+  type: 'IMPORT_SHARED_PLAN'
+  payload: { title: string | null; items: Array<{ text: string; checked: boolean }> }
+}

@@ -11,6 +11,8 @@ import type {
 import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
 import { generateMarkdownExport } from '../../lib/export/markdown-export'
+import { encodeSharePayload } from '../../lib/export/share-url'
+import type { ImportSharedPlanMessage } from '../../types/messages'
 import { chatgptConversationUrl } from '../../lib/chatgpt/chat-url'
 import { mergeChecklist } from '../../lib/merge/merge-checklist'
 import type { MergeSummary } from '../../lib/merge/merge-checklist'
@@ -444,6 +446,7 @@ function App() {
   }
 
   const [shareWarning, setShareWarning] = useState<string | null>(null)
+  const [importBanner, setImportBanner] = useState<string | null>(null)
 
   const handleExport = useCallback(async () => {
     if (!checklist) return
@@ -451,12 +454,60 @@ function App() {
     await navigator.clipboard.writeText(md)
   }, [checklist])
 
-  // Share handler — fully implemented in Task 4; placeholder returns 'ok' for now
   const handleShare = useCallback(async (): Promise<'ok' | 'too_large'> => {
     if (!checklist) return 'ok'
+    const { encoded, tooLarge } = encodeSharePayload(checklist)
+    if (tooLarge) {
+      setShareWarning('Plan too large to share as URL — use Export instead')
+      return 'too_large'
+    }
+    const url = `https://chatgpt.com/?sharedplan=${encoded}`
+    await navigator.clipboard.writeText(url)
     setShareWarning(null)
     return 'ok'
   }, [checklist])
+
+  // Listen for IMPORT_SHARED_PLAN from chatgpt.content.ts
+  useEffect(() => {
+    const handler = (message: unknown) => {
+      if (
+        !message ||
+        typeof message !== 'object' ||
+        (message as ImportSharedPlanMessage).type !== 'IMPORT_SHARED_PLAN'
+      ) return
+      const msg = message as ImportSharedPlanMessage
+      const { title, items } = msg.payload
+      if (!items || items.length === 0) return
+
+      // Build a synthetic conversation ID from a timestamp so it doesn't collide
+      const syntheticId = `shared-${Date.now()}`
+      const record = {
+        version: 1 as const,
+        conversationId: syntheticId,
+        sourceFingerprint: null,
+        updatedAt: Date.now(),
+        createdAt: Date.now(),
+        sourceChatUrl: `https://chatgpt.com`,
+        conversationLabel: title ?? 'Shared plan',
+        sourceStructure: 'unordered' as const,
+        items: items.map((item, idx) => ({
+          id: `${syntheticId}-${idx}`,
+          text: item.text,
+          checked: item.checked,
+          archived: false,
+          order: idx,
+        })),
+      }
+      setChecklist(record).then(() => {
+        setChecklistState(record)
+        refreshLibrary()
+        setImportBanner('Shared plan imported')
+        setTimeout(() => setImportBanner(null), 3000)
+      })
+    }
+    chrome.runtime.onMessage.addListener(handler)
+    return () => chrome.runtime.onMessage.removeListener(handler)
+  }, [])
 
   const handleNewPlan = () => {
     chrome.runtime.sendMessage(
@@ -709,6 +760,11 @@ function App() {
       {infoMessage ? (
         <div className="state-banner state-banner--info" aria-live="polite">
           <p className="state-banner-text">{infoMessage}</p>
+        </div>
+      ) : null}
+      {importBanner ? (
+        <div className="state-banner state-banner--info" aria-live="polite">
+          <p className="state-banner-text">{importBanner}</p>
         </div>
       ) : null}
       {!checklist ? (

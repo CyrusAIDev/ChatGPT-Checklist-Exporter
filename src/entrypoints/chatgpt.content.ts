@@ -1,5 +1,6 @@
 import { extractLatestAssistantMessage } from '../lib/chatgpt/extract-latest-assistant-message'
-import type { GetPageStateRequest } from '../types/messages'
+import { decodeSharePayload } from '../lib/export/share-url'
+import type { GetPageStateRequest, ImportSharedPlanMessage } from '../types/messages'
 
 const isDev = (): boolean =>
   typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production'
@@ -31,5 +32,21 @@ export default defineContentScript({
         return true
       },
     )
+
+    // Detect ?sharedplan= on page load and forward to side panel
+    try {
+      const url = new URL(window.location.href)
+      const sharedPlan = url.searchParams.get('sharedplan')
+      if (sharedPlan) {
+        const payload = decodeSharePayload(sharedPlan)
+        if (payload) {
+          const msg: ImportSharedPlanMessage = { type: 'IMPORT_SHARED_PLAN', payload }
+          chrome.runtime.sendMessage(msg)
+          if (isDev()) console.log('[Living Checklist] Shared plan detected and forwarded', payload.title)
+        }
+      }
+    } catch (e) {
+      if (isDev()) console.log('[Living Checklist] sharedplan detection error', e)
+    }
   },
 })
