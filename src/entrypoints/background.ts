@@ -3,6 +3,7 @@ import type {
   GetPageStateForActiveTabResponse,
   NavigateToConversationResponse,
   OpenChatUrlInNewTabResponse,
+  OpenChatgptHomeResponse,
   PageStatePayload,
   ReloadActiveTabResponse,
 } from '../types/messages'
@@ -23,16 +24,24 @@ export default defineBackground(() => {
         | GetPageStateForActiveTabRequest
         | { type: 'RELOAD_ACTIVE_TAB' }
         | { type: 'NAVIGATE_TO_CONVERSATION'; conversationId: string }
-        | { type: 'OPEN_CHAT_URL_IN_NEW_TAB'; url: string },
+        | { type: 'OPEN_CHAT_URL_IN_NEW_TAB'; url: string }
+        | { type: 'OPEN_CHATGPT_HOME' },
       _sender: chrome.runtime.MessageSender,
       sendResponse: (
         response:
           | GetPageStateForActiveTabResponse
           | ReloadActiveTabResponse
           | NavigateToConversationResponse
-          | OpenChatUrlInNewTabResponse,
+          | OpenChatUrlInNewTabResponse
+          | OpenChatgptHomeResponse,
       ) => void,
     ) => {
+      if (message.type === 'OPEN_CHATGPT_HOME') {
+        chrome.tabs.create({ url: CHATGPT_ORIGIN })
+        sendResponse({ ok: true })
+        return false
+      }
+
       if (message.type === 'OPEN_CHAT_URL_IN_NEW_TAB') {
         try {
           const url = new URL(message.url)

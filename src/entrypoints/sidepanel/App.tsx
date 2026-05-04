@@ -6,6 +6,7 @@ import type {
   ReloadActiveTabResponse,
   NavigateToConversationResponse,
   OpenChatUrlInNewTabResponse,
+  OpenChatgptHomeResponse,
 } from '../../types/messages'
 import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
@@ -26,6 +27,7 @@ import { ChecklistActiveList } from '../../components/ChecklistActiveList'
 import { ChecklistMetaStrip } from '../../components/ChecklistMetaStrip'
 import { LibraryChecklistList } from '../../components/library/LibraryChecklistList'
 import { LibraryChecklistDetail } from '../../components/library/LibraryChecklistDetail'
+import { CompletionCard } from '../../components/CompletionCard'
 
 type PageStateStatus = PageStatePayload | null | 'loading'
 type PageStateError = 'not_chatgpt' | 'no_tab' | 'no_response' | null
@@ -440,6 +442,26 @@ function App() {
     )
   }
 
+  const handleNewPlan = () => {
+    chrome.runtime.sendMessage(
+      { type: 'OPEN_CHATGPT_HOME' },
+      (_response: OpenChatgptHomeResponse | undefined) => {
+        // fire and forget
+      },
+    )
+  }
+
+  const handleArchiveCompleted = async () => {
+    if (!checklist) return
+    await deleteChecklist(checklist.conversationId)
+    setChecklistState(null)
+    setMergeSummary(null)
+    setError(null)
+    setInfoMessage(null)
+    setArchivedCollapsed(true)
+    refreshLibrary()
+  }
+
   const handleResetClick = () => setResetConfirmOpen(true)
   const handleResetCancel = () => setResetConfirmOpen(false)
   const handleResetConfirm = async () => {
@@ -659,6 +681,7 @@ function App() {
   const archivedItems = checklist?.items.filter((i) => i.archived).sort((a, b) => a.order - b.order) ?? []
   const completedCount = activeItems.filter((i) => i.checked).length
   const totalCount = activeItems.length
+  const allDone = totalCount > 0 && completedCount === totalCount
 
   return (
     <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView}>
@@ -685,6 +708,12 @@ function App() {
             Pulls tasks from the latest assistant message in this conversation.
           </p>
         </PanelStateCard>
+      ) : allDone ? (
+        <CompletionCard
+          conversationLabel={checklist.conversationLabel}
+          onArchive={handleArchiveCompleted}
+          onNewPlan={handleNewPlan}
+        />
       ) : (
         <div className="checklist-view">
           <ChecklistActionBar

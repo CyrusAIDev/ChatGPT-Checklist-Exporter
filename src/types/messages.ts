@@ -46,3 +46,8 @@ export type NavigateToConversationResponse = { ok: true } | { ok: false; error: 
 export type OpenChatUrlInNewTabRequest = { type: 'OPEN_CHAT_URL_IN_NEW_TAB'; url: string }
 
 export type OpenChatUrlInNewTabResponse = { ok: true } | { ok: false; error: string }
+
+/** Open chatgpt.com home in a new tab (completion card → start new plan). */
+export type OpenChatgptHomeRequest = { type: 'OPEN_CHATGPT_HOME' }
+
+export type OpenChatgptHomeResponse = { ok: true } | { ok: false; error: string }
