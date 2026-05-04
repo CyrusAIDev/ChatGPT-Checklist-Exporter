@@ -305,7 +305,8 @@ body,
 
 .sidepanel .checklist-action-secondary {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   padding-top: var(--space-2);
   margin-top: var(--space-1);
   border-top: 1px solid var(--border-subtle);
@@ -866,6 +867,81 @@ body,
   margin: var(--space-2) 0 0;
   line-height: 1.45;
   max-width: 36ch;
+}
+
+/* Action bar tool buttons (Export / Share) */
+.sidepanel .checklist-action-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.sidepanel .btn-tool {
+  background: transparent;
+  border: none;
+  font-size: var(--type-section);
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-2);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+}
+
+.sidepanel .btn-tool:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--surface-info-bg);
+}
+
+.sidepanel .btn-tool:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sidepanel .btn-tool:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Tooltip */
+.sidepanel .tooltip-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.sidepanel .tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-strong);
+  color: #fff;
+  font-size: var(--type-micro);
+  font-weight: 500;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.sidepanel .tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--text-strong);
+}
+
+/* Share too-large warning */
+.sidepanel .checklist-share-warning {
+  font-size: var(--type-section);
+  color: var(--danger);
+  margin: var(--space-2) 0 0;
+  line-height: 1.45;
 }
 
 /* Progress bar */

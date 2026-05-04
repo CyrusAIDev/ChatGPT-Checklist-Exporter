@@ -10,6 +10,7 @@ import type {
 } from '../../types/messages'
 import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
+import { generateMarkdownExport } from '../../lib/export/markdown-export'
 import { chatgptConversationUrl } from '../../lib/chatgpt/chat-url'
 import { mergeChecklist } from '../../lib/merge/merge-checklist'
 import type { MergeSummary } from '../../lib/merge/merge-checklist'
@@ -442,6 +443,21 @@ function App() {
     )
   }
 
+  const [shareWarning, setShareWarning] = useState<string | null>(null)
+
+  const handleExport = useCallback(async () => {
+    if (!checklist) return
+    const md = generateMarkdownExport(checklist)
+    await navigator.clipboard.writeText(md)
+  }, [checklist])
+
+  // Share handler — fully implemented in Task 4; placeholder returns 'ok' for now
+  const handleShare = useCallback(async (): Promise<'ok' | 'too_large'> => {
+    if (!checklist) return 'ok'
+    setShareWarning(null)
+    return 'ok'
+  }, [checklist])
+
   const handleNewPlan = () => {
     chrome.runtime.sendMessage(
       { type: 'OPEN_CHATGPT_HOME' },
@@ -720,6 +736,9 @@ function App() {
             busy={busy}
             onMergeLatest={handleMergeLatest}
             onResetClick={handleResetClick}
+            onExport={handleExport}
+            onShare={handleShare}
+            shareWarning={shareWarning}
           />
           <ChecklistMetaStrip
             completedCount={completedCount}
