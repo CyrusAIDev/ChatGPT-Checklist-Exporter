@@ -21,3 +21,4 @@ pnpm-lock.yaml.bak
 package-lock.json.bak
 yarn.lock.bak
 *.bak
+.env

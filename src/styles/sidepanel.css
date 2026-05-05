@@ -1035,3 +1035,114 @@ body,
   justify-content: center;
   text-align: center;
 }
+
+/* Auth prompt */
+.auth-prompt {
+  background: var(--surface-info-bg);
+  border: 1px solid var(--surface-info-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.auth-prompt--synced {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.auth-prompt__title {
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.auth-prompt__sub {
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.auth-prompt__error {
+  font-size: var(--type-micro);
+  color: var(--danger);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.auth-prompt__form {
+  margin: 0;
+}
+
+.auth-prompt__row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.auth-prompt__input {
+  flex: 1;
+  min-width: 0;
+  height: 2rem;
+  padding: 0 var(--space-3);
+  font-size: var(--type-micro);
+  color: var(--text-strong);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.auth-prompt__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(47, 107, 87, 0.15);
+}
+
+.auth-prompt__input--otp {
+  max-width: 6rem;
+  letter-spacing: 0.15em;
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-prompt__btn {
+  white-space: nowrap;
+  font-size: var(--type-micro);
+  padding: 0 var(--space-3);
+  height: 2rem;
+}
+
+.auth-prompt__synced-label {
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-prompt__synced-check {
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.auth-prompt__sign-out {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+
+.auth-prompt__sign-out:hover {
+  color: var(--text-strong);
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import type { User } from '@supabase/supabase-js'
 import type { ChecklistRecord } from '../../types/checklist'
 import type {
   PageStatePayload,
@@ -9,6 +10,9 @@ import type {
   OpenChatgptHomeResponse,
 } from '../../types/messages'
 import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
+import { supabase } from '../../lib/supabase/client'
+import { syncRecord, deleteRecord, pullAndMergeAll } from '../../lib/supabase/sync'
+import { AuthPrompt } from '../../components/AuthPrompt'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
 import { generateMarkdownExport } from '../../lib/export/markdown-export'
 import { encodeSharePayload } from '../../lib/export/share-url'
@@ -118,6 +122,8 @@ function App() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [refreshingTab, setRefreshingTab] = useState(false)
 
+  const [authUser, setAuthUser] = useState<User | null>(null)
+
   const [activeTabUrl, setActiveTabUrl] = useState<string | null>(null)
   const [panelView, setPanelView] = useState<'chat' | 'library'>('chat')
   const [initialViewSet, setInitialViewSet] = useState(false)
@@ -128,6 +134,25 @@ function App() {
 
   const refreshLibrary = useCallback(() => {
     listAllChecklists().then(setLibraryRecords)
+  }, [])
+
+  const syncAfterSave = useCallback((record: ChecklistRecord) => {
+    if (authUser) syncRecord(record, authUser.id).catch(console.warn)
+  }, [authUser])
+
+  const syncAfterDelete = useCallback((conversationId: string) => {
+    if (authUser) deleteRecord(conversationId, authUser.id).catch(console.warn)
+  }, [authUser])
+
+  const handleSignIn = useCallback(async (user: User) => {
+    setAuthUser(user)
+    await pullAndMergeAll(user.id)
+    refreshLibrary()
+  }, [refreshLibrary])
+
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut()
+    setAuthUser(null)
   }, [])
 
   const loadPageState = () => {
@@ -189,6 +214,16 @@ function App() {
   useEffect(() => {
     updateActiveTabUrl()
     loadPageState()
+  }, [])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setAuthUser(data.user)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   useEffect(() => {
@@ -290,6 +325,7 @@ function App() {
       updatedAt: Date.now(),
     }
     await setChecklist(nextRecord)
+    syncAfterSave(nextRecord)
     setLibraryDetailRecord(nextRecord)
     setLibraryRecords((prev) =>
       prev.map((r) => (r.conversationId === nextRecord.conversationId ? nextRecord : r)),
@@ -314,6 +350,7 @@ function App() {
       updatedAt: Date.now(),
     }
     await setChecklist(nextRecord)
+    syncAfterSave(nextRecord)
     setChecklistState(nextRecord)
     if (libraryDetailId === checklist.conversationId) {
       setLibraryDetailRecord(nextRecord)
@@ -360,6 +397,7 @@ function App() {
         sourceStructure,
       })
       await setChecklist(record)
+      syncAfterSave(record)
       setChecklistState(record)
       setPageState(fresh)
       refreshLibrary()
@@ -416,6 +454,7 @@ function App() {
         sourceStructure,
       }
       await setChecklist(mergedRecord)
+      syncAfterSave(mergedRecord)
       setChecklistState(mergedRecord)
       setMergeSummary(result.summary)
       setPageState(fresh)
@@ -511,6 +550,7 @@ function App() {
         })),
       }
       setChecklist(record).then(() => {
+        syncAfterSave(record)
         setChecklistState(record)
         refreshLibrary()
         setImportBanner('Shared plan imported')
@@ -533,6 +573,7 @@ function App() {
   const handleArchiveCompleted = async () => {
     if (!checklist) return
     await deleteChecklist(checklist.conversationId)
+    syncAfterDelete(checklist.conversationId)
     setChecklistState(null)
     setMergeSummary(null)
     setError(null)
@@ -546,6 +587,7 @@ function App() {
   const handleResetConfirm = async () => {
     if (!pageState || pageState === 'loading' || !pageState.conversationId) return
     await deleteChecklist(pageState.conversationId)
+    syncAfterDelete(pageState.conversationId)
     setChecklistState(null)
     setMergeSummary(null)
     setError(null)
@@ -591,13 +633,16 @@ function App() {
             <p className="state-body">Opening checklist…</p>
           </PanelStateCard>
         ) : (
-          <LibraryChecklistList
-            records={sortedFilteredLibrary}
-            search={librarySearch}
-            onSearchChange={setLibrarySearch}
-            onOpenDetail={handleLibraryOpenDetail}
-            onOpenChatUrl={openChatInNewTab}
-          />
+          <>
+            <AuthPrompt user={authUser} onSignIn={handleSignIn} onSignOut={handleSignOut} />
+            <LibraryChecklistList
+              records={sortedFilteredLibrary}
+              search={librarySearch}
+              onSearchChange={setLibrarySearch}
+              onOpenDetail={handleLibraryOpenDetail}
+              onOpenChatUrl={openChatInNewTab}
+            />
+          </>
         )}
       </SidepanelLayout>
     )
