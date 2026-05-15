@@ -1,9 +1,12 @@
-import type { ChecklistItem, ChecklistSourceStructure } from '../types/checklist'
+import type { ChecklistItem, ChecklistGroup, ChecklistSourceStructure } from '../types/checklist'
+import { ChecklistGroupSection } from './ChecklistGroupSection'
 
 type Props = {
   items: ChecklistItem[]
+  groups?: ChecklistGroup[]
   onToggle: (itemId: string) => void
-  /** Omitted or non-ordered: no step column. */
+  onToggleGroup?: (groupId: string) => void
+  /** Omitted or non-ordered: no step column. Only applies to flat (ungrouped) mode. */
   sourceStructure?: ChecklistSourceStructure
 }
 
@@ -24,13 +27,69 @@ function OrderedItemBody({ text, checked }: { text: string; checked: boolean }) 
   return <span className={`item-text ${checked ? 'item-checked' : ''}`}>{text}</span>
 }
 
-export function ChecklistActiveList({ items, onToggle, sourceStructure }: Props) {
-  const ordered = sourceStructure === 'ordered'
+export function ChecklistActiveList({ items, groups, onToggle, onToggleGroup, sourceStructure }: Props) {
   const activeItems = items.filter((i) => !i.archived)
   const doneCount = activeItems.filter((i) => i.checked).length
   const totalCount = activeItems.length
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
 
+  // ── Grouped mode ────────────────────────────────────────────────────────────
+  if (groups && groups.length > 0) {
+    const sortedGroups = [...groups].sort((a, b) => a.order - b.order)
+    return (
+      <>
+        {totalCount > 0 && (
+          <div className="checklist-progress">
+            <span className="checklist-progress-label">
+              {doneCount} / {totalCount} done
+            </span>
+            <div className="checklist-progress-track" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+              <div className="checklist-progress-fill" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+        <div className="checklist-groups">
+          {sortedGroups.map(group => {
+            const groupItems = activeItems
+              .filter(i => i.groupId === group.id)
+              .sort((a, b) => a.order - b.order)
+            return (
+              <ChecklistGroupSection
+                key={group.id}
+                group={group}
+                items={groupItems}
+                onToggle={onToggle}
+                onToggleCollapse={onToggleGroup ?? (() => {})}
+              />
+            )
+          })}
+          {/* Ungrouped items fallback */}
+          {activeItems.filter(i => !i.groupId).length > 0 && (
+            <ul className="checklist-list" role="list">
+              {activeItems
+                .filter(i => !i.groupId)
+                .sort((a, b) => a.order - b.order)
+                .map(item => (
+                  <li key={item.id} className={`checklist-item ${item.checked ? 'checklist-item--done' : ''}`}>
+                    <label className="checklist-item-row">
+                      <span className="checklist-item-check">
+                        <input type="checkbox" checked={item.checked} onChange={() => onToggle(item.id)} />
+                      </span>
+                      <span className="checklist-item-content">
+                        <span className={`item-text ${item.checked ? 'item-checked' : ''}`}>{item.text}</span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      </>
+    )
+  }
+
+  // ── Flat mode (legacy / pre-organize) ───────────────────────────────────────
+  const ordered = sourceStructure === 'ordered'
   return (
     <>
       {totalCount > 0 && (

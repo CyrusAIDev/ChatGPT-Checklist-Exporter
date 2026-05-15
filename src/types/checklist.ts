@@ -1,6 +1,14 @@
 /** Last captured/merged list shape in ChatGPT; drives step markers (not merge identity). */
 export type ChecklistSourceStructure = 'ordered' | 'unordered' | 'checkbox' | 'mixed'
 
+/** A logical group created by the AI organizer or manually by the user. */
+export type ChecklistGroup = {
+  id: string
+  name: string
+  collapsed: boolean
+  order: number
+}
+
 export type ChecklistRecord = {
   version: 1
   conversationId: string
@@ -15,6 +23,8 @@ export type ChecklistRecord = {
   /** Omitted on legacy saves; treated as unordered in UI. */
   sourceStructure?: ChecklistSourceStructure
   items: ChecklistItem[]
+  /** Set when AI organizer has grouped items. Omitted on legacy/flat records. */
+  groups?: ChecklistGroup[]
 }
 
 export type ChecklistItem = {
@@ -23,4 +33,6 @@ export type ChecklistItem = {
   checked: boolean
   archived: boolean
   order: number
+  /** Which group this item belongs to. Undefined = ungrouped (flat list). */
+  groupId?: string
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { User } from '@supabase/supabase-js'
 
 type Props = {
   busy: boolean
@@ -7,6 +8,11 @@ type Props = {
   onExport: () => Promise<void>
   onShare: () => Promise<'ok' | 'too_large'>
   shareWarning: string | null
+  authUser: User | null
+  onOrganize: () => void
+  organizeBusy: boolean
+  smartMerge: boolean
+  onToggleSmartMerge: () => void
 }
 
 export function ChecklistActionBar({
@@ -16,6 +22,11 @@ export function ChecklistActionBar({
   onExport,
   onShare,
   shareWarning,
+  authUser,
+  onOrganize,
+  organizeBusy,
+  smartMerge,
+  onToggleSmartMerge,
 }: Props) {
   const [exportCopied, setExportCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
@@ -45,7 +56,26 @@ export function ChecklistActionBar({
         >
           {busy ? 'Merging…' : 'Merge latest'}
         </button>
+        <button
+          type="button"
+          className={`smart-merge-btn${smartMerge && authUser ? ' smart-merge-btn--on' : ''}${!authUser ? ' btn-tool--locked' : ''}`}
+          onClick={authUser ? onToggleSmartMerge : undefined}
+          disabled={!authUser}
+          title={
+            !authUser
+              ? 'Sign in to enable smart merge'
+              : smartMerge
+                ? '🪄 Smart merge on — AI will regroup after each merge'
+                : 'Smart merge off — click to enable AI regrouping'
+          }
+          aria-label="Toggle AI smart merge"
+          aria-pressed={smartMerge}
+        >
+          🪄
+          {!authUser && <span className="pro-badge">Pro</span>}
+        </button>
       </div>
+
       <div className="checklist-action-secondary">
         <div className="checklist-action-tools">
           <span className="tooltip-anchor">
@@ -80,6 +110,22 @@ export function ChecklistActionBar({
               </span>
             )}
           </span>
+          <span className="tooltip-anchor">
+            <button
+              type="button"
+              className={`btn-tool${!authUser ? ' btn-tool--locked' : ''}`}
+              onClick={authUser ? onOrganize : undefined}
+              disabled={busy || organizeBusy || !authUser}
+              title={!authUser ? 'Sign in to unlock' : undefined}
+              aria-label="Organize checklist with AI"
+            >
+              {organizeBusy
+                ? 'Organizing…'
+                : !authUser
+                  ? <>🪄 Organize <span className="pro-badge">Pro</span></>
+                  : '🪄 Organize'}
+            </button>
+          </span>
         </div>
         <button
           type="button"
@@ -87,9 +133,10 @@ export function ChecklistActionBar({
           onClick={onResetClick}
           disabled={busy}
         >
-          Reset checklist
+          Reset
         </button>
       </div>
+
       {shareWarning && (
         <p className="checklist-share-warning" role="alert">
           {shareWarning}

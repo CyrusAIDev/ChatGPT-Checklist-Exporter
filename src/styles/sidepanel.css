@@ -1146,3 +1146,179 @@ body,
 .auth-prompt__sign-out:hover {
   color: var(--text-strong);
 }
+
+/* ─── Pro / locked utilities ──────────────────────────────────────────────── */
+
+.btn-tool--locked {
+  color: var(--text-muted);
+  cursor: default;
+  opacity: 0.65;
+}
+.btn-tool--locked:hover {
+  background: transparent;
+}
+
+.pro-badge {
+  display: inline-block;
+  margin-left: var(--space-1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+/* ─── Smart Merge toggle ──────────────────────────────────────────────────── */
+
+.checklist-action-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.smart-merge-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 7px;
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.smart-merge-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.smart-merge-btn--on {
+  border-color: var(--accent);
+  background: var(--surface-info-bg);
+  color: var(--accent);
+}
+.smart-merge-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ─── Grouped checklist ───────────────────────────────────────────────────── */
+
+.checklist-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+}
+
+.group-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-muted);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.group-header:hover {
+  background: #e4e1da;
+}
+
+.group-toggle {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 10px;
+}
+
+.group-name {
+  flex: 1;
+  font-size: var(--type-section);
+  font-weight: 600;
+  color: var(--text-strong);
+  letter-spacing: -0.01em;
+}
+
+.group-meta {
+  font-size: var(--type-micro);
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 7px;
+  flex-shrink: 0;
+}
+.group-meta--done {
+  background: var(--surface-info-bg);
+  border-color: var(--surface-info-border);
+  color: var(--accent);
+}
+
+.group-items {
+  padding: var(--space-1) 0;
+  margin: 0;
+}
+
+/* ─── Organize undo bar ───────────────────────────────────────────────────── */
+
+.organize-undo-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-info-bg);
+  border: 1px solid var(--surface-info-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-micro);
+  color: var(--accent);
+  margin-bottom: var(--space-1);
+}
+
+.organize-undo-bar span {
+  flex: 1;
+  font-weight: 600;
+}
+
+.organize-undo-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: var(--type-micro);
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.organize-undo-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.organize-undo-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+.organize-undo-dismiss:hover {
+  color: var(--text-strong);
+}
+

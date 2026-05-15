@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { ChecklistRecord } from '../../types/checklist'
 import type {
@@ -25,6 +25,7 @@ import {
   sortChecklistsByUpdatedDesc,
 } from '../../lib/library/library-query'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
+import { fetchOrganizeResult } from '../../lib/ai/cleanup'
 import { PanelHeader, type ActiveOrigin } from '../../components/PanelHeader'
 import { PanelViewSwitcher } from '../../components/PanelViewSwitcher'
 import { PanelStateCard } from '../../components/PanelStateCard'
@@ -131,6 +132,11 @@ function App() {
   const [libraryRecords, setLibraryRecords] = useState<ChecklistRecord[]>([])
   const [libraryDetailId, setLibraryDetailId] = useState<string | null>(null)
   const [libraryDetailRecord, setLibraryDetailRecord] = useState<ChecklistRecord | null>(null)
+
+  const [organizeBusy, setOrganizeBusy] = useState(false)
+  const [organizeUndo, setOrganizeUndo] = useState<ChecklistRecord | null>(null)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [smartMerge, setSmartMerge] = useState(true)
 
   const refreshLibrary = useCallback(() => {
     listAllChecklists().then(setLibraryRecords)
@@ -448,11 +454,24 @@ function App() {
         setInfoMessage('Already matches the latest reply.')
         return
       }
-      const mergedRecord: ChecklistRecord = {
+      let mergedRecord: ChecklistRecord = {
         ...result.record,
         conversationLabel: fresh.conversationTitle ?? result.record.conversationLabel,
         sourceStructure,
       }
+
+      // Smart merge: re-run AI organizer if enabled and checklist already has groups
+      if (smartMerge && authUser && checklist.groups?.length) {
+        try {
+          const mergedActiveItems = mergedRecord.items
+            .filter(i => !i.archived)
+            .sort((a, b) => a.order - b.order)
+          mergedRecord = await applyOrganizeResult(mergedRecord, mergedActiveItems)
+        } catch {
+          // Silent fallback — show regular merge result if AI fails
+        }
+      }
+
       await setChecklist(mergedRecord)
       syncAfterSave(mergedRecord)
       setChecklistState(mergedRecord)
@@ -580,6 +599,69 @@ function App() {
     setInfoMessage(null)
     setArchivedCollapsed(true)
     refreshLibrary()
+  }
+
+  // ── AI Organize ──────────────────────────────────────────────────────────────
+  const applyOrganizeResult = useCallback(async (
+    base: ChecklistRecord,
+    activeItemsSnap: typeof activeItems,
+  ) => {
+    const { groups, itemUpdates } = await fetchOrganizeResult(activeItemsSnap)
+    const archiveSet = new Set(itemUpdates.flatMap(u => u.mergeIds))
+    const textMap = new Map(itemUpdates.map(u => [u.keepId, u.text]))
+    const groupIdMap = new Map(itemUpdates.map(u => [u.keepId, u.groupId]))
+    const orderMap = new Map(itemUpdates.map(u => [u.keepId, u.order]))
+    const nextItems = base.items.map(item => ({
+      ...item, // preserves checked, archived — only text/groupId/order change
+      text: textMap.get(item.id) ?? item.text,
+      groupId: groupIdMap.get(item.id) ?? item.groupId,
+      order: orderMap.get(item.id) ?? item.order,
+      archived: item.archived || archiveSet.has(item.id),
+    }))
+    return { ...base, items: nextItems, groups, updatedAt: Date.now() } as ChecklistRecord
+  }, [])
+
+  const handleOrganize = async () => {
+    if (!checklist || activeItems.length === 0) return
+    setOrganizeBusy(true)
+    setError(null)
+    try {
+      const nextRecord = await applyOrganizeResult(checklist, activeItems)
+      const previous = checklist
+      await setChecklist(nextRecord)
+      syncAfterSave(nextRecord)
+      setChecklistState(nextRecord)
+      refreshLibrary()
+      // Set undo — auto-expires after 30 s
+      setOrganizeUndo(previous)
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+      undoTimerRef.current = setTimeout(() => setOrganizeUndo(null), 30_000)
+    } catch (e) {
+      setError(`🪄 Organize failed: ${(e as Error).message}`)
+    } finally {
+      setOrganizeBusy(false)
+    }
+  }
+
+  const handleOrganizeUndo = async () => {
+    if (!organizeUndo) return
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    await setChecklist(organizeUndo)
+    syncAfterSave(organizeUndo)
+    setChecklistState(organizeUndo)
+    refreshLibrary()
+    setOrganizeUndo(null)
+  }
+
+  const handleToggleGroup = async (groupId: string) => {
+    if (!checklist?.groups) return
+    const nextGroups = checklist.groups.map(g =>
+      g.id === groupId ? { ...g, collapsed: !g.collapsed } : g,
+    )
+    const nextRecord: ChecklistRecord = { ...checklist, groups: nextGroups }
+    await setChecklist(nextRecord)
+    // No remote sync for collapse state — local only
+    setChecklistState(nextRecord)
   }
 
   const handleResetClick = () => setResetConfirmOpen(true)
@@ -864,7 +946,28 @@ function App() {
             onExport={handleExport}
             onShare={handleShare}
             shareWarning={shareWarning}
+            authUser={authUser}
+            onOrganize={handleOrganize}
+            organizeBusy={organizeBusy}
+            smartMerge={smartMerge}
+            onToggleSmartMerge={() => setSmartMerge(p => !p)}
           />
+          {organizeUndo && (
+            <div className="organize-undo-bar" role="status">
+              <span>✓ Organized</span>
+              <button type="button" className="organize-undo-btn" onClick={handleOrganizeUndo}>
+                Undo
+              </button>
+              <button
+                type="button"
+                className="organize-undo-dismiss"
+                onClick={() => setOrganizeUndo(null)}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <ChecklistMetaStrip
             completedCount={completedCount}
             totalCount={totalCount}
@@ -872,7 +975,9 @@ function App() {
           />
           <ChecklistActiveList
             items={activeItems}
+            groups={checklist.groups}
             onToggle={handleToggle}
+            onToggleGroup={handleToggleGroup}
             sourceStructure={checklist.sourceStructure ?? 'unordered'}
           />
           <ArchivedChecklistSection
