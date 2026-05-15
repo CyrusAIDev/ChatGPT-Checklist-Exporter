@@ -7,11 +7,11 @@ type Props = {
   onToggle: (itemId: string) => void
   onToggleGroup?: (groupId: string) => void
   sourceStructure?: ChecklistSourceStructure
-  editingItemId: string | null
-  onStartEdit: (id: string) => void
-  onCommitEdit: (id: string, text: string) => void
-  onCancelEdit: () => void
-  onAddItem: (groupId: string) => void
+  editingItemId?: string | null
+  onStartEdit?: (id: string) => void
+  onCommitEdit?: (id: string, text: string) => void
+  onCancelEdit?: () => void
+  onAddItem?: (groupId: string) => void
 }
 
 function OrderedItemBody({ text, checked }: { text: string; checked: boolean }) {
@@ -37,11 +37,11 @@ export function ChecklistActiveList({
   onToggle,
   onToggleGroup,
   sourceStructure,
-  editingItemId,
-  onStartEdit,
-  onCommitEdit,
-  onCancelEdit,
-  onAddItem,
+  editingItemId = null,
+  onStartEdit = () => {},
+  onCommitEdit = () => {},
+  onCancelEdit = () => {},
+  onAddItem = () => {},
 }: Props) {
   const activeItems = items.filter((i) => !i.archived)
   const doneCount = activeItems.filter((i) => i.checked).length
