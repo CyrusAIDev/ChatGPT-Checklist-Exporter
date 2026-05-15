@@ -7,6 +7,8 @@ export type ChecklistGroup = {
   name: string
   collapsed: boolean
   order: number
+  /** Set on subgroups only — points to the parent group's id. */
+  parentId?: string
 }
 
 export type ChecklistRecord = {

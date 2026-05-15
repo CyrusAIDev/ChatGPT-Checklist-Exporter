@@ -34,24 +34,35 @@ export async function fetchOrganizeResult(
     throw new Error(body ? `${error.message}: ${body}` : (error.message ?? 'AI service error'))
   }
 
-  type RawGroup = { name: string; items: Array<{ sourceIds: string[]; text: string }> }
+  type RawItem = { sourceIds: string[]; text: string }
+  type RawSubgroup = { name: string; items: RawItem[] }
+  type RawGroup = { name: string; subgroups?: RawSubgroup[]; items: RawItem[] }
   const rawGroups: RawGroup[] = (data as { groups: RawGroup[] }).groups
   const now = Date.now()
 
-  const groups: ChecklistGroup[] = rawGroups.map((g, i) => ({
-    id: `grp-${now}-${i}`,
-    name: g.name,
-    collapsed: false,
-    order: i,
-  }))
-
+  const groups: ChecklistGroup[] = []
   const itemUpdates: OrganizeItemUpdate[] = []
+
   rawGroups.forEach((g, gi) => {
-    const groupId = groups[gi].id
-    g.items.forEach((item, ii) => {
+    const topId = `grp-${now}-${gi}`
+    groups.push({ id: topId, name: g.name, collapsed: false, order: gi })
+
+    // Items placed directly in the top-level group
+    ;(g.items ?? []).forEach((item, ii) => {
       const [keepId, ...mergeIds] = item.sourceIds
       if (!keepId) return
-      itemUpdates.push({ keepId, mergeIds, text: item.text, groupId, order: ii })
+      itemUpdates.push({ keepId, mergeIds, text: item.text, groupId: topId, order: ii })
+    })
+
+    // Subgroups
+    ;(g.subgroups ?? []).forEach((sub, si) => {
+      const subId = `grp-${now}-${gi}-${si}`
+      groups.push({ id: subId, name: sub.name, collapsed: false, order: si, parentId: topId })
+      ;(sub.items ?? []).forEach((item, ii) => {
+        const [keepId, ...mergeIds] = item.sourceIds
+        if (!keepId) return
+        itemUpdates.push({ keepId, mergeIds, text: item.text, groupId: subId, order: ii })
+      })
     })
   })
 

@@ -4,7 +4,7 @@
   --bg-panel: #ffffff;
   --bg-subtle: #f3f4f6;
   --bg-muted: #eceae4;
-  --text-strong: #18202a;
+  --text-strong: #0f1923;
   --text-muted: #5d6773;
   --text-muted-strong: #3d4754;
   --border: #e7e1d7;
@@ -284,54 +284,158 @@ body,
   margin-top: 0;
 }
 
-/* P2: primary dominates; reset is clearly secondary */
+/* ─── Action bar ─────────────────────────────────────────────────────────── */
+
 .sidepanel .checklist-action-bar {
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-3);
 }
 
-.sidepanel .checklist-action-primary {
-  margin-bottom: var(--space-2);
-}
-
-.sidepanel .btn-primary--lead {
-  width: 100%;
-  justify-content: center;
-  min-height: 2.625rem;
-  font-weight: 600;
-  font-size: calc(var(--type-body) + 0.03125rem);
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
-}
-
-.sidepanel .checklist-action-secondary {
+.sidepanel .checklist-action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: var(--space-2);
-  margin-top: var(--space-1);
-  border-top: 1px solid var(--border-subtle);
+  gap: var(--space-2);
 }
 
-.sidepanel .btn-destructive--quiet {
-  background: transparent;
+/* Hero: Organize button */
+.sidepanel .btn-organize {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
   border: none;
-  box-shadow: none;
-  font-size: var(--type-section);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 2.5rem;
+  white-space: nowrap;
+}
+
+.sidepanel .btn-organize:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.sidepanel .btn-organize:active:not(:disabled) {
+  background: var(--accent-pressed);
+}
+
+.sidepanel .btn-organize:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sidepanel .btn-organize:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sidepanel .btn-organize--locked {
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.sidepanel .btn-organize--locked:hover {
+  background: var(--bg-muted);
+}
+
+/* Secondary: Merge button (outlined) */
+.sidepanel .btn-merge {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--type-body);
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 2.5rem;
+}
+
+.sidepanel .btn-merge:hover:not(:disabled) {
+  background: var(--surface-info-bg);
+}
+
+.sidepanel .btn-merge:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sidepanel .btn-merge:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Share icon button */
+.sidepanel .share-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sidepanel .btn-share-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2.5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.sidepanel .btn-share-icon:hover,
+.sidepanel .btn-share-icon--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-info-bg);
+}
+
+.sidepanel .btn-share-icon:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Bottom reset link */
+.sidepanel .checklist-footer {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: center;
+}
+
+.sidepanel .btn-reset-bottom {
+  background: none;
+  border: none;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--type-micro);
   font-weight: 500;
   color: var(--text-muted);
-  padding: var(--space-2) var(--space-2);
-  text-align: right;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
 }
 
-.sidepanel .btn-destructive--quiet:hover:not(:disabled) {
+.sidepanel .btn-reset-bottom:hover:not(:disabled) {
   color: var(--danger);
-  background: var(--danger-bg);
 }
 
-.sidepanel .btn-destructive--quiet:focus-visible {
+.sidepanel .btn-reset-bottom:focus-visible {
   outline: 2px solid var(--danger);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+}
+
+.sidepanel .btn-reset-bottom:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .sidepanel .checklist-meta-strip {
@@ -431,10 +535,12 @@ body,
 
 .sidepanel .item-text {
   font-size: var(--type-body);
+  font-weight: 500;
   line-height: 1.5;
   word-wrap: break-word;
   min-width: 0;
   display: block;
+  cursor: text;
 }
 
 .sidepanel .item-text--stacked .item-text-lead {
@@ -1174,12 +1280,6 @@ body,
 
 /* ─── Smart Merge toggle ──────────────────────────────────────────────────── */
 
-.checklist-action-primary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .smart-merge-btn {
   flex-shrink: 0;
   background: none;
@@ -1248,7 +1348,7 @@ body,
 .group-name {
   flex: 1;
   font-size: var(--type-section);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-strong);
   letter-spacing: -0.01em;
 }
@@ -1320,5 +1420,164 @@ body,
 }
 .organize-undo-dismiss:hover {
   color: var(--text-strong);
+}
+
+/* ─── Share sheet ─────────────────────────────────────────────────────────── */
+
+.sidepanel .share-sheet {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(15, 25, 35, 0.12);
+  z-index: 30;
+  overflow: hidden;
+  padding: var(--space-1) 0;
+}
+
+.sidepanel .share-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  background: none;
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--type-body);
+  font-weight: 500;
+  color: var(--text-strong);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.sidepanel .share-sheet-item:hover {
+  background: var(--surface-info-bg);
+  color: var(--accent);
+}
+
+.sidepanel .share-sheet-icon {
+  font-size: 0.9rem;
+  width: 1.1rem;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.sidepanel .share-sheet-feedback {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--type-section);
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+}
+
+.sidepanel .share-sheet-warning {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--type-micro);
+  color: var(--danger);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ─── Subgroups ───────────────────────────────────────────────────────────── */
+
+.subgroup-section {
+  border-top: 1px solid var(--border-subtle);
+  margin: 0;
+}
+
+.subgroup-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 10px);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.subgroup-header:hover {
+  background: color-mix(in srgb, var(--bg-muted) 50%, transparent);
+}
+
+.subgroup-name {
+  flex: 1;
+  font-size: var(--type-micro);
+  font-weight: 600;
+  color: var(--text-muted-strong);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.group-body .group-items {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+
+.subgroup-section .group-items {
+  padding-left: calc(var(--space-2) + 10px);
+}
+
+/* ─── Inline edit input ───────────────────────────────────────────────────── */
+
+.sidepanel .item-edit-input {
+  width: 100%;
+  font-size: var(--type-body);
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text-strong);
+  background: var(--surface-info-bg);
+  border: 1.5px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px var(--space-2);
+  outline: none;
+  min-width: 0;
+}
+
+.sidepanel .item-edit-input:focus {
+  box-shadow: 0 0 0 2px rgba(47, 107, 87, 0.15);
+}
+
+/* ─── Add item button ─────────────────────────────────────────────────────── */
+
+.sidepanel .btn-add-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px dashed var(--border);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--type-micro);
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.sidepanel .btn-add-item:hover {
+  color: var(--accent);
+  background: var(--surface-info-bg);
+}
+
+.sidepanel .btn-add-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.subgroup-section .btn-add-item {
+  padding-left: calc(var(--space-4) + 10px);
 }
 

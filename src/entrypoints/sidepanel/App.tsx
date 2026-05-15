@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { ChecklistRecord } from '../../types/checklist'
+import type { ChecklistRecord, ChecklistItem } from '../../types/checklist'
 import type {
   PageStatePayload,
   GetPageStateForActiveTabResponse,
@@ -137,6 +137,8 @@ function App() {
   const [organizeUndo, setOrganizeUndo] = useState<ChecklistRecord | null>(null)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [smartMerge, setSmartMerge] = useState(true)
+
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
 
   const refreshLibrary = useCallback(() => {
     listAllChecklists().then(setLibraryRecords)
@@ -536,6 +538,69 @@ function App() {
     setShareWarning(null)
     return 'ok'
   }, [checklist])
+
+  const handleCopyPlainText = useCallback(() => {
+    if (!checklist) return
+    const activeItems = checklist.items.filter(i => !i.archived)
+    const groups = checklist.groups ?? []
+    let text: string
+    if (groups.length === 0) {
+      text = activeItems
+        .sort((a, b) => a.order - b.order)
+        .map(i => `${i.checked ? '☑' : '☐'} ${i.text}`)
+        .join('\n')
+    } else {
+      const topGroups = groups.filter(g => !g.parentId).sort((a, b) => a.order - b.order)
+      const lines: string[] = []
+      for (const group of topGroups) {
+        lines.push(group.name)
+        const subgroups = groups.filter(g => g.parentId === group.id).sort((a, b) => a.order - b.order)
+        for (const sub of subgroups) {
+          lines.push(`  ${sub.name}`)
+          activeItems.filter(i => i.groupId === sub.id).sort((a, b) => a.order - b.order)
+            .forEach(i => lines.push(`  ${i.checked ? '☑' : '☐'} ${i.text}`))
+        }
+        activeItems.filter(i => i.groupId === group.id).sort((a, b) => a.order - b.order)
+          .forEach(i => lines.push(`${i.checked ? '☑' : '☐'} ${i.text}`))
+        lines.push('')
+      }
+      text = lines.join('\n').trim()
+    }
+    navigator.clipboard.writeText(text)
+  }, [checklist])
+
+  const handleStartEdit = useCallback((id: string) => setEditingItemId(id), [])
+  const handleCancelEdit = useCallback(() => setEditingItemId(null), [])
+
+  const handleCommitEdit = useCallback(async (itemId: string, newText: string) => {
+    if (!checklist) return
+    setEditingItemId(null)
+    const trimmed = newText.trim()
+    const nextItems = trimmed
+      ? checklist.items.map(i => i.id === itemId ? { ...i, text: trimmed } : i)
+      : checklist.items.filter(i => i.id !== itemId)
+    const nextRecord: ChecklistRecord = { ...checklist, items: nextItems, updatedAt: Date.now() }
+    await setChecklist(nextRecord)
+    syncAfterSave(nextRecord)
+    setChecklistState(nextRecord)
+  }, [checklist, syncAfterSave])
+
+  const handleAddItem = useCallback(async (groupId: string) => {
+    if (!checklist) return
+    const groupItems = checklist.items.filter(i => i.groupId === groupId && !i.archived)
+    const maxOrder = groupItems.reduce((m, i) => Math.max(m, i.order), -1)
+    const newId = `item-${Date.now()}`
+    const newItem: ChecklistItem = {
+      id: newId, text: '', checked: false, archived: false, order: maxOrder + 1, groupId,
+    }
+    const nextRecord: ChecklistRecord = {
+      ...checklist, items: [...checklist.items, newItem], updatedAt: Date.now(),
+    }
+    await setChecklist(nextRecord)
+    syncAfterSave(nextRecord)
+    setChecklistState(nextRecord)
+    setEditingItemId(newId)
+  }, [checklist, syncAfterSave])
 
   // Listen for IMPORT_SHARED_PLAN from chatgpt.content.ts
   useEffect(() => {
@@ -942,15 +1007,15 @@ function App() {
           <ChecklistActionBar
             busy={busy}
             onMergeLatest={handleMergeLatest}
-            onResetClick={handleResetClick}
-            onExport={handleExport}
-            onShare={handleShare}
-            shareWarning={shareWarning}
             authUser={authUser}
             onOrganize={handleOrganize}
             organizeBusy={organizeBusy}
             smartMerge={smartMerge}
             onToggleSmartMerge={() => setSmartMerge(p => !p)}
+            onCopyLink={handleShare}
+            onCopyMarkdown={handleExport}
+            onCopyPlainText={handleCopyPlainText}
+            shareWarning={shareWarning}
           />
           {organizeUndo && (
             <div className="organize-undo-bar" role="status">
@@ -979,12 +1044,27 @@ function App() {
             onToggle={handleToggle}
             onToggleGroup={handleToggleGroup}
             sourceStructure={checklist.sourceStructure ?? 'unordered'}
+            editingItemId={editingItemId}
+            onStartEdit={handleStartEdit}
+            onCommitEdit={handleCommitEdit}
+            onCancelEdit={handleCancelEdit}
+            onAddItem={handleAddItem}
           />
           <ArchivedChecklistSection
             items={archivedItems}
             collapsed={archivedCollapsed}
             onToggleCollapsed={() => setArchivedCollapsed(!archivedCollapsed)}
           />
+          <div className="checklist-footer">
+            <button
+              type="button"
+              className="btn-reset-bottom"
+              onClick={handleResetClick}
+              disabled={busy}
+            >
+              Reset checklist
+            </button>
+          </div>
           {resetConfirmOpen && (
             <div className="reset-dialog-backdrop">
               <ResetConfirmDialog onConfirm={handleResetConfirm} onCancel={handleResetCancel} />
