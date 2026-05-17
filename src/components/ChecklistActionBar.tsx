@@ -45,7 +45,7 @@ export function ChecklistActionBar({
           aria-label="Organize checklist with AI"
         >
           {organizeBusy
-            ? 'Organizing…'
+            ? <><span className="lc-spinner" aria-hidden="true" /> Organizing…</>
             : !authUser
               ? <>&#x1FA84; Organize <span className="pro-badge">Pro</span></>
               : <><span aria-hidden="true">&#x1FA84;</span> Organize</>}
@@ -58,7 +58,7 @@ export function ChecklistActionBar({
           onClick={onMergeLatest}
           disabled={busy}
         >
-          {busy ? 'Merging…' : 'Merge'}
+          {busy ? <><span className="lc-spinner" aria-hidden="true" /> Merging…</> : <>Merge</>}
         </button>
 
         {/* Smart merge toggle */}

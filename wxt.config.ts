@@ -5,7 +5,7 @@ export default defineConfig({
   srcDir: 'src',
   manifest: {
     name: 'Living Checklist for ChatGPT',
-    version: '0.1.0',
+    version: '1.0.0',
     description: 'One living checklist per ChatGPT conversation.',
     action: {
       default_title: 'Open Living Checklist',

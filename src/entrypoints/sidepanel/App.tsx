@@ -462,8 +462,8 @@ function App() {
         sourceStructure,
       }
 
-      // Smart merge: re-run AI organizer if enabled and checklist already has groups
-      if (smartMerge && authUser && checklist.groups?.length) {
+      // Smart merge: re-run AI organizer if enabled
+      if (smartMerge && authUser) {
         try {
           const mergedActiveItems = mergedRecord.items
             .filter(i => !i.archived)
@@ -827,15 +827,11 @@ function App() {
               <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
                 {refreshingTab ? 'Refreshing…' : 'Refresh page'}
               </button>
-              <button type="button" className="btn-secondary" onClick={handleCheckAgain} disabled={refreshingTab}>
-                Check again
-              </button>
             </>
           }
         >
           <p className="state-body">
-            Tab may still be loading, or the add-on was just reloaded. Refresh the tab or use Check again. You can also
-            use Library anytime.
+            Tab may still be loading, or the extension was just reloaded. Refresh the page to reconnect, or use Library anytime.
           </p>
         </PanelStateCard>
       </SidepanelLayout>
@@ -929,14 +925,11 @@ function App() {
               <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
                 {refreshingTab ? 'Refreshing…' : 'Refresh page'}
               </button>
-              <button type="button" className="btn-secondary" onClick={handleCheckAgain} disabled={refreshingTab}>
-                Check again
-              </button>
             </>
           }
         >
           <p className="state-body state-body--secondary">
-            The page may still be loading, or scroll to the latest reply. Refresh page or Check again to try again.
+            The page may still be loading. Refresh the page, then scroll to the latest reply.
           </p>
         </PanelStateCard>
       </SidepanelLayout>

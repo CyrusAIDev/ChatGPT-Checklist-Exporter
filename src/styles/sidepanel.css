@@ -35,6 +35,23 @@
   --type-micro: 0.6875rem;
 }
 
+/* ─── Loading spinner ─────────────────────────────────────────────────────── */
+@keyframes lc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.lc-spinner {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  border: 1.75px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: lc-spin 0.65s linear infinite;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
 html,
 body,
 #root {
@@ -204,23 +221,30 @@ body,
 }
 
 .sidepanel .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: var(--space-2) var(--space-4);
   font-size: var(--type-body);
   font-weight: 500;
   color: #fff;
   background: var(--accent);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 11px;
   cursor: pointer;
-  box-shadow: var(--shadow-panel);
+  box-shadow: 0 1px 3px rgba(15, 25, 35, 0.16), 0 0 0 1px rgba(0,0,0,0.05) inset;
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
 .sidepanel .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
+  box-shadow: 0 2px 5px rgba(15, 25, 35, 0.2), 0 0 0 1px rgba(0,0,0,0.07) inset;
 }
 
 .sidepanel .btn-primary:active:not(:disabled) {
   background: var(--accent-pressed);
+  box-shadow: 0 1px 2px rgba(15, 25, 35, 0.12);
 }
 
 .sidepanel .btn-primary:focus-visible {
@@ -229,19 +253,25 @@ body,
 }
 
 .sidepanel .btn-primary:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .sidepanel .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: var(--space-2) var(--space-3);
   font-size: var(--type-body);
   font-weight: 500;
   color: var(--text-muted-strong);
   background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .sidepanel .btn-secondary:hover {
@@ -302,25 +332,30 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: 6px;
   padding: var(--space-3) var(--space-4);
   font-size: var(--type-body);
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: #fff;
   background: var(--accent);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 11px;
   cursor: pointer;
-  min-height: 2.5rem;
+  min-height: 2.625rem;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(15, 25, 35, 0.18), 0 0 0 1px rgba(0,0,0,0.06) inset;
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
 .sidepanel .btn-organize:hover:not(:disabled) {
   background: var(--accent-hover);
+  box-shadow: 0 2px 6px rgba(15, 25, 35, 0.22), 0 0 0 1px rgba(0,0,0,0.08) inset;
 }
 
 .sidepanel .btn-organize:active:not(:disabled) {
   background: var(--accent-pressed);
+  box-shadow: 0 1px 2px rgba(15, 25, 35, 0.14);
 }
 
 .sidepanel .btn-organize:focus-visible {
@@ -329,36 +364,49 @@ body,
 }
 
 .sidepanel .btn-organize:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .sidepanel .btn-organize--locked {
   background: var(--bg-muted);
-  color: var(--text-muted);
+  color: var(--text-muted-strong);
   border: 1px solid var(--border);
+  box-shadow: none;
 }
 
 .sidepanel .btn-organize--locked:hover {
   background: var(--bg-muted);
+  box-shadow: none;
 }
 
 /* Secondary: Merge button (outlined) */
 .sidepanel .btn-merge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: var(--space-2) var(--space-4);
   font-size: var(--type-body);
   font-weight: 500;
   color: var(--accent);
   background: transparent;
   border: 1.5px solid var(--accent);
-  border-radius: var(--radius-sm);
+  border-radius: 11px;
   cursor: pointer;
   white-space: nowrap;
-  min-height: 2.5rem;
+  min-height: 2.625rem;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
 .sidepanel .btn-merge:hover:not(:disabled) {
   background: var(--surface-info-bg);
+}
+
+.sidepanel .btn-merge:active:not(:disabled) {
+  background: var(--surface-info-bg);
+  border-color: var(--accent-hover);
 }
 
 .sidepanel .btn-merge:focus-visible {
@@ -1282,27 +1330,40 @@ body,
 
 .smart-merge-btn {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 7px;
-  font-size: 0.875rem;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  padding: 0 8px;
+  font-size: 1rem;
   line-height: 1;
+  min-height: 2.625rem;
+  min-width: 2.5rem;
   cursor: pointer;
   color: var(--text-muted);
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 .smart-merge-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--surface-info-bg);
 }
+/* "On" state: solid fill for maximum contrast */
 .smart-merge-btn--on {
   border-color: var(--accent);
-  background: var(--surface-info-bg);
-  color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(15, 25, 35, 0.18);
+}
+.smart-merge-btn--on:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: #fff;
 }
 .smart-merge-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: default;
 }
 
