@@ -4,10 +4,12 @@ import { ShareSheet } from './ShareSheet'
 
 type Props = {
   busy: boolean
+  mergePhase: 'idle' | 'merging' | 'organizing'
   onMergeLatest: () => void
   authUser: User | null
   onOrganize: () => void
   organizeBusy: boolean
+  organizeLabel: string
   smartMerge: boolean
   onToggleSmartMerge: () => void
   onCopyLink: () => Promise<'ok' | 'too_large'>
@@ -18,10 +20,12 @@ type Props = {
 
 export function ChecklistActionBar({
   busy,
+  mergePhase,
   onMergeLatest,
   authUser,
   onOrganize,
   organizeBusy,
+  organizeLabel,
   smartMerge,
   onToggleSmartMerge,
   onCopyLink,
@@ -38,14 +42,14 @@ export function ChecklistActionBar({
         {/* Hero: Organize */}
         <button
           type="button"
-          className={`btn-organize${!authUser ? ' btn-organize--locked' : ''}`}
+          className={`btn-organize${organizeBusy || mergePhase === 'organizing' ? ' btn-organize--loading' : ''}${!authUser ? ' btn-organize--locked' : ''}`}
           onClick={authUser ? onOrganize : undefined}
           disabled={busy || organizeBusy || !authUser}
           title={!authUser ? 'Sign in to unlock' : undefined}
           aria-label="Organize checklist with AI"
         >
-          {organizeBusy
-            ? <><span className="lc-spinner" aria-hidden="true" /> Organizing…</>
+          {organizeBusy || mergePhase === 'organizing'
+            ? <><span className="lc-spinner" aria-hidden="true" /><span key={organizeLabel} className="lc-stage-label">{organizeLabel}</span></>
             : !authUser
               ? <>&#x1FA84; Organize <span className="pro-badge">Pro</span></>
               : <><span aria-hidden="true">&#x1FA84;</span> Organize</>}
@@ -58,7 +62,11 @@ export function ChecklistActionBar({
           onClick={onMergeLatest}
           disabled={busy}
         >
-          {busy ? <><span className="lc-spinner" aria-hidden="true" /> Merging…</> : <>Merge</>}
+          {mergePhase === 'merging'
+            ? <><span className="lc-spinner" aria-hidden="true" /> Merging…</>
+            : mergePhase === 'organizing'
+              ? <><span className="lc-spinner" aria-hidden="true" /> Organizing…</>
+              : <>Merge</>}
         </button>
 
         {/* Smart merge toggle */}

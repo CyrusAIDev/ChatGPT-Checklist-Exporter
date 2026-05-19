@@ -134,9 +134,11 @@ function App() {
   const [libraryDetailRecord, setLibraryDetailRecord] = useState<ChecklistRecord | null>(null)
 
   const [organizeBusy, setOrganizeBusy] = useState(false)
+  const [organizeLabel, setOrganizeLabel] = useState('Organizing…')
   const [organizeUndo, setOrganizeUndo] = useState<ChecklistRecord | null>(null)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [smartMerge, setSmartMerge] = useState(true)
+  const [mergePhase, setMergePhase] = useState<'idle' | 'merging' | 'organizing'>('idle')
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
 
@@ -195,8 +197,9 @@ function App() {
   }
 
   const reFetchFromTabReady = () => {
-    setPageState('loading')
-    setPageError(null)
+    // Fetch silently — do NOT set pageState to 'loading' here because that
+    // cascades to clearing the checklist state, causing the list to flash away
+    // on every tab activation or ChatGPT navigation.
     fetchPageStateWithRetry().then((response) => {
       if (isDev()) {
         console.log('[Living Checklist] tab-ready re-fetch response', response)
@@ -273,6 +276,9 @@ function App() {
   }, [])
 
   useEffect(() => {
+    // Don't clear the checklist during transient loading — this would flash away
+    // the list every time the tab is activated or ChatGPT navigates.
+    if (pageState === 'loading') return
     if (pageState && pageState !== 'loading' && pageState.supported && pageState.conversationId) {
       setError(null)
       getChecklist(pageState.conversationId).then(setChecklistState)
@@ -378,10 +384,10 @@ function App() {
       if (!response.ok) {
         const msg =
           response.error === 'no_response'
-            ? 'Can’t read this tab. Refresh or try again.'
+            ? "Can't read this tab. Refresh or try again."
             : response.error === 'no_tab'
               ? 'No active tab. Open a saved thread and retry.'
-              : 'This page isn’t supported here.'
+              : "This page isn't supported here."
         setError(msg)
         return
       }
@@ -419,6 +425,7 @@ function App() {
   const handleMergeLatest = async () => {
     if (!pageState || pageState === 'loading' || !pageState.supported || !pageState.conversationId || !checklist) return
     setBusy(true)
+    setMergePhase('merging')
     setError(null)
     setInfoMessage(null)
     setMergeSummary(null)
@@ -427,10 +434,10 @@ function App() {
       if (!response.ok) {
         const msg =
           response.error === 'no_response'
-            ? 'Can’t read this tab. Refresh or try again.'
+            ? "Can't read this tab. Refresh or try again."
             : response.error === 'no_tab'
               ? 'No active tab. Open a saved thread and retry.'
-              : 'This page isn’t supported here.'
+              : "This page isn't supported here."
         setError(msg)
         return
       }
@@ -462,15 +469,18 @@ function App() {
         sourceStructure,
       }
 
-      // Smart merge: re-run AI organizer if enabled
+      // Smart merge: re-run AI organizer so new items get placed into the right groups
       if (smartMerge && authUser) {
+        setMergePhase('organizing')
         try {
           const mergedActiveItems = mergedRecord.items
             .filter(i => !i.archived)
             .sort((a, b) => a.order - b.order)
           mergedRecord = await applyOrganizeResult(mergedRecord, mergedActiveItems)
-        } catch {
-          // Silent fallback — show regular merge result if AI fails
+        } catch (e) {
+          // Don't silently swallow — show a visible notice so the user knows
+          // smart organize failed and the regular merge was kept instead.
+          setInfoMessage(`Merged — AI organize unavailable: ${(e as Error).message}`)
         }
       }
 
@@ -484,6 +494,7 @@ function App() {
       setError(e instanceof Error ? e.message : 'Merge failed.')
     } finally {
       setBusy(false)
+      setMergePhase('idle')
     }
   }
 
@@ -669,20 +680,30 @@ function App() {
   // ── AI Organize ──────────────────────────────────────────────────────────────
   const applyOrganizeResult = useCallback(async (
     base: ChecklistRecord,
-    activeItemsSnap: typeof activeItems,
+    activeItemsSnap: ChecklistItem[],
   ) => {
     const { groups, itemUpdates } = await fetchOrganizeResult(activeItemsSnap)
+    const newGroupIds = new Set(groups.map(g => g.id))
     const archiveSet = new Set(itemUpdates.flatMap(u => u.mergeIds))
     const textMap = new Map(itemUpdates.map(u => [u.keepId, u.text]))
     const groupIdMap = new Map(itemUpdates.map(u => [u.keepId, u.groupId]))
     const orderMap = new Map(itemUpdates.map(u => [u.keepId, u.order]))
-    const nextItems = base.items.map(item => ({
-      ...item, // preserves checked, archived — only text/groupId/order change
-      text: textMap.get(item.id) ?? item.text,
-      groupId: groupIdMap.get(item.id) ?? item.groupId,
-      order: orderMap.get(item.id) ?? item.order,
-      archived: item.archived || archiveSet.has(item.id),
-    }))
+    const nextItems = base.items.map(item => {
+      const newGroupId = groupIdMap.get(item.id)
+      // If the AI didn't map this item's groupId to a new group, clear it to
+      // undefined so it falls to the ungrouped fallback rather than pointing
+      // to a now-deleted group and disappearing from the rendered list.
+      const resolvedGroupId = newGroupId && newGroupIds.has(newGroupId)
+        ? newGroupId
+        : (item.groupId && newGroupIds.has(item.groupId) ? item.groupId : undefined)
+      return {
+        ...item, // preserves checked, archived — only text/groupId/order change
+        text: textMap.get(item.id) ?? item.text,
+        groupId: resolvedGroupId,
+        order: orderMap.get(item.id) ?? item.order,
+        archived: item.archived || archiveSet.has(item.id),
+      }
+    })
     return { ...base, items: nextItems, groups, updatedAt: Date.now() } as ChecklistRecord
   }, [])
 
@@ -717,6 +738,19 @@ function App() {
     refreshLibrary()
     setOrganizeUndo(null)
   }
+
+  // Cycle the organize button label through stages to reduce perceived wait time
+  useEffect(() => {
+    const isBusy = organizeBusy || mergePhase === 'organizing'
+    if (!isBusy) { setOrganizeLabel('Organizing…'); return }
+    const stages = ['Analyzing…', 'Grouping tasks…', 'Cleaning up…', 'Almost done…']
+    let i = 0
+    const id = setInterval(() => {
+      i = (i + 1) % stages.length
+      setOrganizeLabel(stages[i])
+    }, 1800)
+    return () => clearInterval(id)
+  }, [organizeBusy, mergePhase])
 
   const handleToggleGroup = async (groupId: string) => {
     if (!checklist?.groups) return
@@ -821,7 +855,7 @@ function App() {
     return (
       <SidepanelLayout panelView={panelView} onPanelViewChange={setPanelView} activeOrigin={activeOrigin}>
         <PanelStateCard
-          title="Can’t read this tab"
+          title="Can't read this tab"
           actions={
             <>
               <button type="button" className="btn-primary" onClick={handleRefreshPage} disabled={refreshingTab}>
@@ -844,7 +878,7 @@ function App() {
         <PanelStateCard>
           <p className="state-body">
             Capture and merge run on saved ChatGPT threads. Switch to Library to continue checklists you already saved,
-            or open <span className="state-nowrap">chatgpt.com</span> when you’re ready.
+            or open <span className="state-nowrap">chatgpt.com</span> when you're ready.
           </p>
         </PanelStateCard>
       </SidepanelLayout>
@@ -999,10 +1033,12 @@ function App() {
         <div className="checklist-view">
           <ChecklistActionBar
             busy={busy}
+            mergePhase={mergePhase}
             onMergeLatest={handleMergeLatest}
             authUser={authUser}
             onOrganize={handleOrganize}
             organizeBusy={organizeBusy}
+            organizeLabel={organizeLabel}
             smartMerge={smartMerge}
             onToggleSmartMerge={() => setSmartMerge(p => !p)}
             onCopyLink={handleShare}

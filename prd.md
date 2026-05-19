@@ -18,6 +18,11 @@ Chrome Web Store SEO  ████████░░░░░░░░░░░�
 - [x] Loading spinners on Organize + Merge
 - [x] Reliable Refresh page (removed broken Check again)
 - [x] Apple-look UI, solid smart-merge toggle contrast
+- [x] Merge + smart merge bug fixed (silent failure removed, phases visible)
+- [x] List disappears on tab activity — fixed (silent re-fetch, no loading flash)
+- [x] Orphaned items after merge+organize — fixed (groupId validation)
+- [x] Loading animation improved (shimmer + cycling stages)
+- [x] Auth prompt contrast improved (white background, darker subtitle)
 - [ ] **Task A — GitHub Pages:** Enable in repo Settings → Pages → branch: main / folder: /docs. Privacy URL: `https://cyrusaidev.github.io/ChatGPT-Checklist-Exporter/privacy.html`
 - [ ] **Task B — Chrome Web Store SEO:** Fill listing at https://chrome.google.com/webstore/devconsole
 - [ ] **Task C — Submit zip:** `cd .output && zip -r living-checklist.zip chrome-mv3/` → upload to Web Store
@@ -116,3 +121,5 @@ One-time $5 developer fee required if not paid.
 - 🪄 emoji may render as ✏️ on some Windows fonts
 - Inline editing only works in grouped mode (after Organize)
 - No drag-to-reorder
+- UI still has "AI-made" feel in some areas — further polish possible post-launch
+- Organize/merge AI call takes 3-8s (Claude Haiku); perceived speed improved with shimmer + stages but not eliminatable
