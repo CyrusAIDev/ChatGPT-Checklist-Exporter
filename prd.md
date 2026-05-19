@@ -1,119 +1,118 @@
-# PRD — Post-Library Execution Upgrade
+# Living Checklist — Product Requirements Document
+> **Scope lock:** Ship free tier + Stripe premium gate + Chrome Web Store SEO. Nothing else.
 
-## Product
-A calm, local-first execution layer for ChatGPT conversations.
+---
 
-Current product shape:
-- one living checklist per conversation
-- deterministic merge
-- checked state preserved across revisions
-- removed items archived
-- cross-conversation library available in the side panel
-- usable on ChatGPT and while browsing elsewhere in Chrome
+## Launch checklist (update checkboxes as tasks complete)
 
-## Who this is for
-Solo operator / builder / consultant who uses ChatGPT to generate plans, then wants to actually execute them without re-copying work into another app.
+```
+Free tier submission ████████████████████░░░░  80%
+Premium (Stripe) gate ░░░░░░░░░░░░░░░░░░░░░░░░   0%
+Chrome Web Store SEO  ████████░░░░░░░░░░░░░░░░  33%
+```
 
-## Core promise
-Turn ChatGPT plans into living checklists that stay useful across revisions and across conversations.
+- [x] Version → 1.0.0
+- [x] Privacy policy at `docs/privacy.html`
+- [x] AI Organizer bug fixed (JSON truncation, 8192 tokens)
+- [x] Smart merge works on un-grouped lists
+- [x] Loading spinners on Organize + Merge
+- [x] Reliable Refresh page (removed broken Check again)
+- [x] Apple-look UI, solid smart-merge toggle contrast
+- [ ] **Task A — GitHub Pages:** Enable in repo Settings → Pages → branch: main / folder: /docs. Privacy URL: `https://cyrusaidev.github.io/ChatGPT-Checklist-Exporter/privacy.html`
+- [ ] **Task B — Chrome Web Store SEO:** Fill listing at https://chrome.google.com/webstore/devconsole
+- [ ] **Task C — Submit zip:** `cd .output && zip -r living-checklist.zip chrome-mv3/` → upload to Web Store
+- [ ] **Task D — Stripe premium gate:** See spec below
+- [ ] **Task E — Post-launch:** Screenshots, promo tile, keyword A/B test
 
-## Current stage
-The premium polish sprint and checklist library are already done.
+---
 
-This next stage is:
-1. preserve ordered step-by-step structure when the source is sequential
-2. build one paid-worthy assistive AI action: AI Clean Up
-3. prepare launch assets after that
+## Task A — GitHub Pages (15 min, no code)
+1. Go to https://github.com/CyrusAIDev/ChatGPT-Checklist-Exporter/settings/pages
+2. Source: Deploy from a branch
+3. Branch: `main` / Folder: `/docs` → Save
+4. Privacy policy URL: `https://cyrusaidev.github.io/ChatGPT-Checklist-Exporter/privacy.html`
+5. Paste that URL into the Chrome Web Store listing
 
-## What premium means now
-Premium does not mean more surface area.
+---
 
-Premium now means:
-- the checklist respects the source format better
-- step-by-step plans still feel like steps
-- the library is useful anywhere in Chrome
-- one assistive AI action saves meaningful time
-- preview-before-apply builds trust
-- nothing breaks the deterministic local-first core
+## Task B — Chrome Web Store SEO
+**Listing URL:** https://chrome.google.com/webstore/devconsole
+| Field | Value |
+|-------|-------|
+| Name (45 char max) | Living Checklist for ChatGPT & Claude |
+| Category | Productivity |
+| Short desc (132 char max) | Turn ChatGPT and Claude replies into a living, interactive checklist. One-click merge keeps your progress when plans change. |
+| Primary keyword | chatgpt checklist |
+| Secondary keywords | claude ai checklist, ai task manager, chatgpt extension productivity |
 
-## This stage’s goals
+**Long description structure:**
+1. Hook (1 sentence) — what it does
+2. Core features (4 bullets)
+3. How it works (3 steps)
+4. Who it's for (2 sentences)
+5. Privacy note (1 sentence + link)
 
-### Goal 1 — Ordered-step preservation
-If ChatGPT gives a numbered sequence or true step-by-step output, the extension should preserve that structure visually.
+---
 
-It should still be a checklist.
-It should not become a workflow engine.
+## Task C — Zip and submit
+```bash
+cd /Users/cyrusghoreishi/Desktop/chrome-ext-starter
+pnpm build
+cp -r .output/chrome-mv3/ extension/
+cd .output && zip -r living-checklist.zip chrome-mv3/
+```
+Upload `living-checklist.zip` at https://chrome.google.com/webstore/devconsole.
+One-time $5 developer fee required if not paid.
 
-### Goal 2 — AI Clean Up MVP
-Add one narrow assistive AI action that makes a saved checklist cleaner and easier to execute.
+---
 
-The AI action should:
-- tighten wording
-- remove obvious duplicates
-- standardize phrasing
-- keep the checklist flat and practical
-- show preview before apply
+## Task D — Stripe premium gate (estimated 2–3 hrs)
+### What exists
+- Auth gate already in `App.tsx`: every premium feature checks `!authUser`
+- Need to change to `!isPro` where `isPro = authUser && profile?.is_pro`
 
-## Must not break
-- conversation-based checklist identity
-- capture from latest assistant output
-- merge latest without losing matched checked state
-- archive behavior
-- reset behavior
-- local-first storage
-- library list/detail behavior
-- check/uncheck persistence
-- original chat deep link from library
+### Steps
+1. **Stripe account** → get `STRIPE_SECRET_KEY` (sk_live_...) and `STRIPE_PUBLISHABLE_KEY` (pk_live_...)
+2. **Supabase secrets:**
+   ```bash
+   supabase secrets set STRIPE_SECRET_KEY=sk_live_... --project-ref hnzowqseruvxypyutwcc
+   supabase secrets set STRIPE_PUBLISHABLE_KEY=pk_live_... --project-ref hnzowqseruvxypyutwcc
+   ```
+3. **Supabase DB migration:**
+   ```sql
+   ALTER TABLE profiles ADD COLUMN is_pro BOOLEAN DEFAULT false;
+   ```
+4. **App.tsx changes:**
+   - Add `const [isPro, setIsPro] = useState(false)`
+   - Fetch `profiles` row on sign-in, set `isPro = profile.is_pro`
+   - Replace all `!authUser` premium gates with `!isPro`
+5. **Edge function `stripe-webhook`:**
+   - Verify Stripe signature
+   - On `checkout.session.completed` → set `profiles.is_pro = true` for user
+6. **Checkout flow in extension:**
+   - Add "Upgrade to Pro" button → opens Stripe Checkout in new tab
+   - After payment, webhook fires, `is_pro` flips, user sees Pro features on next session
 
-## In scope now
-- preserve ordered vs unordered source structure
-- render ordered checklists as numbered steps
-- keep merge matching based on normalized text, not visible numbers
-- AI Clean Up MVP with preview/apply
-- compact doc updates that keep Cursor aligned
-- minimal UI needed for the AI action
+### Premium features to gate (search `!authUser` in App.tsx)
+- AI Organizer button
+- Smart merge toggle
+- Cloud sync / Library across devices
 
-## Out of scope now
-Do not build:
-- cloud sync
-- team features
-- tags / priorities / due dates
-- subtasks
-- folders/projects
-- multiple AI actions
-- AI workspace features
-- backend-heavy systems
-- billing
-- popup/options detours
-- broad refactors
+### Pricing
+- One-time $9.99 OR $4.99/month (decide before implementing checkout)
 
-## Ordered-step rule
-When the source is step-by-step, preserve that presentation.
+---
 
-Good:
-- numbered visual treatment
-- same check/uncheck behavior
-- same merge logic
+## Out of scope (do not implement)
+- Drag-to-reorder items
+- Sharing checklists with other users
+- Any AI feature beyond the current Organizer
+- Mobile / Firefox / Safari support
+- Analytics / telemetry
 
-Bad:
-- turning every ordered sequence into a generic unordered list
-- using step numbers as merge identity
-- adding workflow complexity
+---
 
-## AI Clean Up rule
-AI stays assistive, not central.
-
-The first paid AI action should:
-- operate on one saved checklist at a time
-- work from current chat checklist and library detail
-- produce a preview
-- require user apply
-- not silently overwrite the checklist
-
-## Success bar
-This stage is successful when:
-- step-by-step outputs stay visibly ordered
-- library remains stable
-- AI Clean Up produces useful previewable edits
-- apply preserves trust and checked-state behavior
-- the product feels more worth paying for without turning into a bigger app
+## Known issues (low priority, do not fix unless blocking launch)
+- 🪄 emoji may render as ✏️ on some Windows fonts
+- Inline editing only works in grouped mode (after Organize)
+- No drag-to-reorder

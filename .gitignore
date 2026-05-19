@@ -22,3 +22,4 @@ package-lock.json.bak
 yarn.lock.bak
 *.bak
 .env
+.claude/
