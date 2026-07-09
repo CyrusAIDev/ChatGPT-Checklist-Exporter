@@ -14,6 +14,17 @@ Launch readiness      ████████████████░░░�
 
 ---
 
+## Completed 2026-07-09 (merge root-cause fix)
+
+| # | What | Where |
+|---|------|-------|
+| ✅ | **Organize no longer rewrites item text** — merge matches by text, so rewrites broke every later merge (items archived + re-added ungrouped = "ruined organization"). Prompts require verbatim text; client ignores AI text changes entirely | `clean-checklist/index.ts`, `App.tsx` |
+| ✅ | **Partial-reply guard** — "add one item" replies that contain only the addition no longer archive the rest of the plan; merge treats them as additive | `App.tsx` |
+| ✅ | **Smart-place deployed** — merge with magic ON now sends existing group names to the AI and slots only new items into them (code existed locally but was never deployed) | `cleanup.ts`, edge fn |
+| ⚠️ | Lists organized BEFORE this fix have rewritten texts — their first merge may still be bumpy; merges stabilize after that. Fresh capture + organize = fully clean | — |
+
+---
+
 ## Completed 2026-07-09 (premium gate session)
 
 | # | What | Where |
