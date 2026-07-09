@@ -6,6 +6,70 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Repair common AI JSON mistakes before passing to JSON.parse.
+ * Main case: unescaped ASCII double-quote characters inside a string value.
+ *
+ * Strategy: walk character by character; when inside a string, if we hit a `"`
+ * that is NOT followed by a JSON-structural character (: , } ] newline EOF),
+ * treat it as an unescaped internal quote and escape it.
+ */
+function sanitizeJson(raw: string): string {
+  let out = ''
+  let i = 0
+  const len = raw.length
+  let inString = false
+
+  while (i < len) {
+    const ch = raw[i]
+
+    if (!inString) {
+      if (ch === '"') inString = true
+      out += ch
+      i++
+      continue
+    }
+
+    // Inside a string ──────────────────────────────────────────────
+    if (ch === '\\') {
+      // Escape sequence — pass both characters through unchanged
+      out += ch
+      i++
+      if (i < len) { out += raw[i]; i++ }
+      continue
+    }
+
+    if (ch === '"') {
+      // Peek ahead (skip spaces/tabs) to decide: closing quote or internal?
+      let j = i + 1
+      while (j < len && (raw[j] === ' ' || raw[j] === '\t')) j++
+      const next = j < len ? raw[j] : ''
+
+      // After a real closing quote the next structural char is one of these:
+      if (
+        next === ':' || next === ',' || next === '}' || next === ']' ||
+        next === '\n' || next === '\r' || next === ''
+      ) {
+        inString = false
+        out += ch            // closing quote, keep as-is
+      } else {
+        out += '\\"'         // unescaped internal quote — escape it
+      }
+      i++
+      continue
+    }
+
+    // Also replace Unicode curly/smart quotes inside strings with straight equivalents
+    if (ch === '“' || ch === '„') { out += '\\"'; i++; continue }
+    if (ch === '”' || ch === '‟') { out += '\\"'; i++; continue }
+
+    out += ch
+    i++
+  }
+
+  return out
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -29,14 +93,51 @@ serve(async (req) => {
   }
 
   type InputItem = { id: string; text: string }
-  const { items } = await req.json() as { items: InputItem[] }
+  type ExistingGroup = { name: string }
+  const body = await req.json() as { items: InputItem[]; existingGroups?: ExistingGroup[] }
+  const { items, existingGroups } = body
   if (!Array.isArray(items) || items.length === 0) {
     return new Response(JSON.stringify({ error: 'items must be a non-empty array' }), {
       status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
 
-  const prompt = `You are an intelligent checklist organizer. Reorganize the given items into logical groups with optional subgroups.
+  const isSmartPlace = Array.isArray(existingGroups) && existingGroups.length > 0
+
+  const sharedQuoteRule =
+    "- Never use double quotation marks (\") inside item or group name text. " +
+    "Use single quotes (') to quote any term — e.g. write 'People Also Ask' not \"People Also Ask\"."
+
+  const prompt = isSmartPlace
+    ? `You are a checklist organizer. Place each new task into the most appropriate group from the list below. Do not create new groups.
+
+ALLOWED GROUPS (use these names EXACTLY as written — do not invent new group names):
+${existingGroups!.map(g => `- "${g.name}"`).join('\n')}
+
+RULES:
+- Assign every item to exactly one group from the list above.
+- Use the group names EXACTLY as shown — no variations, no new groups.
+- If an item could fit multiple groups, pick the best match; if truly unsure, use the last group.
+- Combine duplicate or near-identical items: list all their IDs in sourceIds, write one clean text.
+- Every input ID must appear in exactly one item's sourceIds — no omissions, no duplicates.
+- Keep item text concise and actionable; preserve meaning exactly.
+${sharedQuoteRule}
+
+Return ONLY valid JSON (no markdown, no code fences, no commentary):
+{
+  "groups": [
+    {
+      "name": "Exact Group Name From List",
+      "items": [{"sourceIds": ["id1"], "text": "Task text"}]
+    }
+  ]
+}
+
+Only include groups that have at least one item assigned.
+
+Items to place:
+${JSON.stringify(items)}`
+    : `You are an intelligent checklist organizer. Reorganize the given items into logical groups with optional subgroups.
 
 RULES:
 - Group related items under a short, clear group name (1–3 words). Aim for 2–5 top-level groups.
@@ -44,6 +145,7 @@ RULES:
 - Combine duplicate or near-identical items: list all their IDs in sourceIds, write one clean merged text.
 - Every input ID must appear in exactly one item's sourceIds — no IDs may be omitted or duplicated.
 - Rewrite items to be concise and actionable; preserve meaning exactly.
+${sharedQuoteRule}
 
 Return ONLY valid JSON (no markdown, no code fences, no commentary):
 {
@@ -101,10 +203,27 @@ ${JSON.stringify(items)}`
   type RawGroup = { name: string; subgroups?: RawSubgroup[]; items: RawItem[] }
   let groups: RawGroup[]
 
-  try {
-    const parsed = JSON.parse(jsonText) as { groups: RawGroup[] }
-    if (!Array.isArray(parsed.groups) || parsed.groups.length === 0) throw new Error('no groups')
+  // Two-attempt parse: first try the raw text, then a sanitized version
+  const tryParse = (text: string): { groups: RawGroup[] } | null => {
+    try {
+      const p = JSON.parse(text) as { groups: RawGroup[] }
+      if (!Array.isArray(p.groups) || p.groups.length === 0) return null
+      return p
+    } catch {
+      return null
+    }
+  }
 
+  const parsed = tryParse(jsonText) ?? tryParse(sanitizeJson(jsonText))
+
+  if (!parsed) {
+    return new Response(
+      JSON.stringify({ error: 'Failed to parse AI response', raw: rawText, detail: 'JSON parse failed after sanitization attempt' }),
+      { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } },
+    )
+  }
+
+  try {
     // Collect all items from both top-level and subgroup items
     const allRawItems = (g: RawGroup): RawItem[] => [
       ...(g.items ?? []),
@@ -133,7 +252,7 @@ ${JSON.stringify(items)}`
     groups = parsed.groups
   } catch (e) {
     return new Response(
-      JSON.stringify({ error: 'Failed to parse AI response', raw: rawText, detail: String(e) }),
+      JSON.stringify({ error: 'Failed to validate AI response', raw: rawText, detail: String(e) }),
       { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } },
     )
   }
