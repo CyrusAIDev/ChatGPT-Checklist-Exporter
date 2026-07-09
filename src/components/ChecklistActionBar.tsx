@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react'
-import type { User } from '@supabase/supabase-js'
 import { ShareSheet } from './ShareSheet'
 
 type Props = {
   busy: boolean
   mergePhase: 'idle' | 'merging' | 'organizing'
   onMergeLatest: () => void
-  authUser: User | null
+  isPro: boolean
+  upgradeBusy: boolean
+  onUpgradePro: () => void
   onOrganize: () => void
   organizeBusy: boolean
   organizeLabel: string
@@ -22,7 +23,9 @@ export function ChecklistActionBar({
   busy,
   mergePhase,
   onMergeLatest,
-  authUser,
+  isPro,
+  upgradeBusy,
+  onUpgradePro,
   onOrganize,
   organizeBusy,
   organizeLabel,
@@ -42,17 +45,18 @@ export function ChecklistActionBar({
         {/* Hero: Organize */}
         <button
           type="button"
-          className={`btn-organize${organizeBusy || mergePhase === 'organizing' ? ' btn-organize--loading' : ''}${!authUser ? ' btn-organize--locked' : ''}`}
-          onClick={authUser ? onOrganize : undefined}
-          disabled={busy || organizeBusy || !authUser}
-          title={!authUser ? 'Sign in to unlock' : undefined}
+          className={`btn-organize${organizeBusy || mergePhase === 'organizing' ? ' btn-organize--loading' : ''}${!isPro ? ' btn-organize--locked' : ''}`}
+          onClick={isPro ? onOrganize : onUpgradePro}
+          disabled={busy || organizeBusy || upgradeBusy}
           aria-label="Organize checklist with AI"
         >
           {organizeBusy || mergePhase === 'organizing'
             ? <><span className="lc-spinner" aria-hidden="true" /><span key={organizeLabel} className="lc-stage-label">{organizeLabel}</span></>
-            : !authUser
-              ? <>&#x1FA84; Organize <span className="pro-badge">Pro</span></>
-              : <><span aria-hidden="true">&#x1FA84;</span> Organize</>}
+            : upgradeBusy
+              ? <><span className="lc-spinner" aria-hidden="true" /> Upgrading…</>
+              : !isPro
+                ? <>&#x1FA84; Organize <span className="pro-badge">Pro</span></>
+                : <><span aria-hidden="true">&#x1FA84;</span> Organize</>}
         </button>
 
         {/* Secondary: Merge */}
@@ -72,21 +76,21 @@ export function ChecklistActionBar({
         {/* Smart merge toggle */}
         <button
           type="button"
-          className={`smart-merge-btn${smartMerge && authUser ? ' smart-merge-btn--on' : ''}${!authUser ? ' btn-tool--locked' : ''}`}
-          onClick={authUser ? onToggleSmartMerge : undefined}
-          disabled={!authUser}
+          className={`smart-merge-btn${smartMerge && isPro ? ' smart-merge-btn--on' : ''}${!isPro ? ' btn-tool--locked' : ''}`}
+          onClick={isPro ? onToggleSmartMerge : onUpgradePro}
+          disabled={upgradeBusy}
           title={
-            !authUser
-              ? 'Sign in to enable smart merge'
+            !isPro
+              ? 'Upgrade to Pro to enable smart merge'
               : smartMerge
                 ? 'Smart merge on — AI regroups after each merge (click to disable)'
                 : 'Auto-regroup items after each merge (click to enable)'
           }
           aria-label="Toggle AI smart merge"
-          aria-pressed={smartMerge}
+          aria-pressed={isPro && smartMerge}
         >
           <span aria-hidden="true">&#x1FA84;</span>
-          {!authUser && <span className="pro-badge">Pro</span>}
+          {!isPro && <span className="pro-badge">Pro</span>}
         </button>
 
         {/* Share icon */}

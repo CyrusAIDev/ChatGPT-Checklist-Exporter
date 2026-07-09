@@ -4,13 +4,16 @@ import { supabase } from '../lib/supabase/client'
 
 type AuthPromptProps = {
   user: User | null
+  isPro: boolean
+  upgradeBusy: boolean
   onSignIn: (user: User) => void
   onSignOut: () => void
+  onUpgradePro: () => void
 }
 
 type Stage = 'email' | 'otp'
 
-export function AuthPrompt({ user, onSignIn, onSignOut }: AuthPromptProps) {
+export function AuthPrompt({ user, isPro, upgradeBusy, onSignIn, onSignOut, onUpgradePro }: AuthPromptProps) {
   const [stage, setStage] = useState<Stage>('email')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
@@ -20,10 +23,24 @@ export function AuthPrompt({ user, onSignIn, onSignOut }: AuthPromptProps) {
   if (user) {
     return (
       <div className="auth-prompt auth-prompt--synced">
-        <span className="auth-prompt__synced-label">
-          <span className="auth-prompt__synced-check" aria-hidden>✓</span>
-          {' '}Synced · {user.email}
-        </span>
+        <div className="auth-prompt__synced-info">
+          <span className="auth-prompt__synced-label">
+            <span className="auth-prompt__synced-check" aria-hidden>
+              {isPro ? '★' : '✓'}
+            </span>
+            {' '}{isPro ? 'Pro' : 'Free'} · {user.email}
+          </span>
+          {!isPro && (
+            <button
+              type="button"
+              className="auth-prompt__upgrade-btn"
+              onClick={onUpgradePro}
+              disabled={upgradeBusy}
+            >
+              {upgradeBusy ? 'Upgrading…' : 'Upgrade to Pro'}
+            </button>
+          )}
+        </div>
         <button
           type="button"
           className="auth-prompt__sign-out"

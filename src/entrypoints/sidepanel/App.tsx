@@ -12,6 +12,7 @@ import type {
 import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
 import { supabase } from '../../lib/supabase/client'
 import { syncRecord, deleteRecord, pullAndMergeAll } from '../../lib/supabase/sync'
+import { fetchProfile, grantPro } from '../../lib/supabase/profiles'
 import { AuthPrompt } from '../../components/AuthPrompt'
 import { createChecklistRecord, parseLatestMessage } from '../../lib/chatgpt/parse-checklist'
 import { generateMarkdownExport } from '../../lib/export/markdown-export'
@@ -25,7 +26,7 @@ import {
   sortChecklistsByUpdatedDesc,
 } from '../../lib/library/library-query'
 import { ResetConfirmDialog } from '../../components/ResetConfirmDialog'
-import { fetchOrganizeResult } from '../../lib/ai/cleanup'
+import { fetchOrganizeResult, fetchSmartPlaceResult } from '../../lib/ai/cleanup'
 import { PanelHeader, type ActiveOrigin } from '../../components/PanelHeader'
 import { PanelViewSwitcher } from '../../components/PanelViewSwitcher'
 import { PanelStateCard } from '../../components/PanelStateCard'
@@ -124,6 +125,8 @@ function App() {
   const [refreshingTab, setRefreshingTab] = useState(false)
 
   const [authUser, setAuthUser] = useState<User | null>(null)
+  const [isPro, setIsPro] = useState(false)
+  const [upgradeBusy, setUpgradeBusy] = useState(false)
 
   const [activeTabUrl, setActiveTabUrl] = useState<string | null>(null)
   const [panelView, setPanelView] = useState<'chat' | 'library'>('chat')
@@ -156,6 +159,8 @@ function App() {
 
   const handleSignIn = useCallback(async (user: User) => {
     setAuthUser(user)
+    // Fetch profile in parallel with library sync — don't block UI on either
+    fetchProfile(user.id).then(p => setIsPro(p?.is_pro ?? false)).catch(() => {})
     await pullAndMergeAll(user.id)
     refreshLibrary()
   }, [refreshLibrary])
@@ -163,7 +168,24 @@ function App() {
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut()
     setAuthUser(null)
+    setIsPro(false)
   }, [])
+
+  const handleUpgradePro = useCallback(async () => {
+    if (!authUser || upgradeBusy) return
+    setUpgradeBusy(true)
+    setError(null)
+    try {
+      await grantPro()
+      setIsPro(true)
+      setInfoMessage('You are now Pro. All features unlocked.')
+      setTimeout(() => setInfoMessage(null), 4000)
+    } catch (e) {
+      setError(`Upgrade failed: ${(e as Error).message}`)
+    } finally {
+      setUpgradeBusy(false)
+    }
+  }, [authUser, upgradeBusy])
 
   const loadPageState = () => {
     setPageState('loading')
@@ -229,10 +251,19 @@ function App() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setAuthUser(data.user)
+      if (data.user) {
+        setAuthUser(data.user)
+        fetchProfile(data.user.id).then(p => setIsPro(p?.is_pro ?? false)).catch(() => {})
+      }
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthUser(session?.user ?? null)
+      const user = session?.user ?? null
+      setAuthUser(user)
+      if (user) {
+        fetchProfile(user.id).then(p => setIsPro(p?.is_pro ?? false)).catch(() => {})
+      } else {
+        setIsPro(false)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -458,6 +489,15 @@ function App() {
         setError('No list found in the latest assistant message.')
         return
       }
+      // ── DEBUG ─────────────────────────────────────────────────────────────
+      console.log('[Merge Debug] checklist.groups:', JSON.stringify(checklist.groups ?? null))
+      console.log('[Merge Debug] checklist items (active) groupIds:',
+        checklist.items.filter(i => !i.archived).map(i => ({
+          id: i.id, text: i.text.slice(0, 30), groupId: i.groupId ?? 'NONE',
+        }))
+      )
+      // ──────────────────────────────────────────────────────────────────────
+
       const result = mergeChecklist(checklist, parsedItems)
       if (result === null) {
         setInfoMessage('Already matches the latest reply.')
@@ -469,19 +509,79 @@ function App() {
         sourceStructure,
       }
 
-      // Smart merge: re-run AI organizer so new items get placed into the right groups
-      if (smartMerge && authUser) {
-        setMergePhase('organizing')
-        try {
-          const mergedActiveItems = mergedRecord.items
-            .filter(i => !i.archived)
-            .sort((a, b) => a.order - b.order)
-          mergedRecord = await applyOrganizeResult(mergedRecord, mergedActiveItems)
-        } catch (e) {
-          // Don't silently swallow — show a visible notice so the user knows
-          // smart organize failed and the regular merge was kept instead.
-          setInfoMessage(`Merged — AI organize unavailable: ${(e as Error).message}`)
+      // ── DEBUG ─────────────────────────────────────────────────────────────
+      console.log('[Merge Debug] after mergeChecklist — groups:', JSON.stringify(mergedRecord.groups ?? null))
+      console.log('[Merge Debug] after mergeChecklist — active items:',
+        mergedRecord.items.filter(i => !i.archived).map(i => ({
+          id: i.id, text: i.text.slice(0, 30), groupId: i.groupId ?? 'NONE',
+        }))
+      )
+      // ──────────────────────────────────────────────────────────────────────
+
+      // Smart merge: preserve existing groups; only place NEW items into the right group.
+      // Falls back to full re-organize only when the list has no groups yet.
+      if (smartMerge && isPro) {
+        const existingGroups = mergedRecord.groups ?? []
+        const newUnplacedItems = mergedRecord.items.filter(i => !i.archived && !i.groupId)
+
+        // ── DEBUG ───────────────────────────────────────────────────────────
+        console.log('[Merge Debug] smartMerge ON — existingGroups.length:', existingGroups.length)
+        console.log('[Merge Debug] smartMerge ON — newUnplacedItems.length:', newUnplacedItems.length)
+        console.log('[Merge Debug] smartMerge ON — existingGroups:', existingGroups.map(g => ({ id: g.id, name: g.name, parentId: g.parentId ?? null })))
+        console.log('[Merge Debug] smartMerge ON — newUnplacedItems:', newUnplacedItems.map(i => i.text.slice(0, 40)))
+        if (existingGroups.length === 0) console.warn('[Merge Debug] ⚠️  existingGroups is EMPTY — falling back to full re-organize')
+        // ────────────────────────────────────────────────────────────────────
+
+        if (existingGroups.length > 0 && newUnplacedItems.length > 0) {
+          // Groups already exist — ask the AI to slot ONLY the new items into them.
+          // Existing items keep their groupId untouched.
+          setMergePhase('organizing')
+          try {
+            const assignments = await fetchSmartPlaceResult(newUnplacedItems, existingGroups)
+            // ── DEBUG ───────────────────────────────────────────────────────
+            console.log('[Merge Debug] fetchSmartPlaceResult assignments:',
+              Object.fromEntries(assignments)
+            )
+            // ────────────────────────────────────────────────────────────────
+            const nextItems = mergedRecord.items.map(item => ({
+              ...item,
+              groupId: assignments.get(item.id) ?? item.groupId,
+            }))
+            mergedRecord = { ...mergedRecord, items: nextItems, updatedAt: Date.now() }
+            // ── DEBUG ───────────────────────────────────────────────────────
+            console.log('[Merge Debug] after smart-place — active items:',
+              mergedRecord.items.filter(i => !i.archived).map(i => ({
+                id: i.id, text: i.text.slice(0, 30), groupId: i.groupId ?? 'NONE',
+              }))
+            )
+            // ────────────────────────────────────────────────────────────────
+          } catch (e) {
+            console.error('[Merge Debug] fetchSmartPlaceResult threw:', e)
+            setInfoMessage(`Merged — AI placement unavailable: ${(e as Error).message}`)
+          }
+        } else if (existingGroups.length === 0) {
+          // No groups yet — run full AI organize to build structure from scratch.
+          setMergePhase('organizing')
+          try {
+            const mergedActiveItems = mergedRecord.items
+              .filter(i => !i.archived)
+              .sort((a, b) => a.order - b.order)
+            mergedRecord = await applyOrganizeResult(mergedRecord, mergedActiveItems)
+          } catch (e) {
+            console.error('[Merge Debug] applyOrganizeResult threw:', e)
+            setInfoMessage(`Merged — AI organize unavailable: ${(e as Error).message}`)
+          }
         }
+        // If existingGroups.length > 0 but newUnplacedItems.length === 0,
+        // all merged items already have groupIds — nothing to do.
+        // ── DEBUG ───────────────────────────────────────────────────────────
+        console.log('[Merge Debug] final mergedRecord.groups:', JSON.stringify(mergedRecord.groups ?? null))
+        console.log('[Merge Debug] final mergedRecord active items:',
+          mergedRecord.items.filter(i => !i.archived).map(i => ({
+            id: i.id, text: i.text.slice(0, 30), groupId: i.groupId ?? 'NONE',
+          }))
+        )
+        // ────────────────────────────────────────────────────────────────────
       }
 
       await setChecklist(mergedRecord)
@@ -739,14 +839,15 @@ function App() {
     setOrganizeUndo(null)
   }
 
-  // Cycle the organize button label through stages to reduce perceived wait time
+  // Step through organize label stages; clamp at "Almost done…" — never cycle back.
   useEffect(() => {
     const isBusy = organizeBusy || mergePhase === 'organizing'
     if (!isBusy) { setOrganizeLabel('Organizing…'); return }
     const stages = ['Analyzing…', 'Grouping tasks…', 'Cleaning up…', 'Almost done…']
     let i = 0
+    setOrganizeLabel(stages[0])          // show first stage immediately
     const id = setInterval(() => {
-      i = (i + 1) % stages.length
+      i = Math.min(i + 1, stages.length - 1)   // clamp — never wraps back
       setOrganizeLabel(stages[i])
     }, 1800)
     return () => clearInterval(id)
@@ -815,7 +916,14 @@ function App() {
           </PanelStateCard>
         ) : (
           <>
-            <AuthPrompt user={authUser} onSignIn={handleSignIn} onSignOut={handleSignOut} />
+            <AuthPrompt
+              user={authUser}
+              isPro={isPro}
+              upgradeBusy={upgradeBusy}
+              onSignIn={handleSignIn}
+              onSignOut={handleSignOut}
+              onUpgradePro={handleUpgradePro}
+            />
             <LibraryChecklistList
               records={sortedFilteredLibrary}
               search={librarySearch}
@@ -1035,7 +1143,9 @@ function App() {
             busy={busy}
             mergePhase={mergePhase}
             onMergeLatest={handleMergeLatest}
-            authUser={authUser}
+            isPro={isPro}
+            upgradeBusy={upgradeBusy}
+            onUpgradePro={handleUpgradePro}
             onOrganize={handleOrganize}
             organizeBusy={organizeBusy}
             organizeLabel={organizeLabel}

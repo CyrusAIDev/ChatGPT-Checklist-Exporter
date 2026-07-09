@@ -1237,6 +1237,13 @@ body,
   padding: var(--space-3) var(--space-4);
 }
 
+.auth-prompt__synced-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
 .auth-prompt__title {
   font-size: var(--type-body);
   font-weight: 600;
@@ -1314,6 +1321,31 @@ body,
   color: var(--accent);
   font-weight: 700;
   flex-shrink: 0;
+}
+
+.auth-prompt__upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: var(--type-micro);
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.auth-prompt__upgrade-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.auth-prompt__upgrade-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-prompt__sign-out {
