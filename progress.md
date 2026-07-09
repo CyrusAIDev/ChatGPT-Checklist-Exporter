@@ -6,15 +6,30 @@
 ## Overall status
 ```
 Free tier submission ██████████████████████░░  90%
-Premium (Stripe) gate ░░░░░░░░░░░░░░░░░░░░░░░░   0%
+Premium gate (no Stripe yet) ██████████████████░░░░░░  75%
 Chrome Web Store SEO  ████████░░░░░░░░░░░░░░░░  33%
 ──────────────────────────────────────────────────
-Launch readiness      █████████████░░░░░░░░░░░  53%
+Launch readiness      ████████████████░░░░░░░░  66%
 ```
 
 ---
 
-## Completed this session (2026-05-19)
+## Completed 2026-07-09 (premium gate session)
+
+| # | What | Where |
+|---|------|-------|
+| ✅ | **Supabase project restored** (was paused — cause of "Failed to fetch") | Dashboard |
+| ✅ | **`profiles` table created** — is_pro column, RLS (users read own row), auto-create trigger on signup, backfill for the 1 existing user | Migration ran via Management API |
+| ✅ | **`grant-pro` edge function deployed** — flips is_pro=true for the authenticated caller; Stripe webhook will reuse this later | `supabase/functions/grant-pro/` |
+| ✅ | **isPro state wired into App.tsx** — fetched on sign-in + session restore; all premium gates now check `!isPro` instead of `!authUser` | `App.tsx`, `profiles.ts` |
+| ✅ | **Upgrade to Pro flow** — button in AuthPrompt (Library tab); locked Organize/smart-merge buttons also trigger upgrade | `AuthPrompt.tsx`, `ChecklistActionBar.tsx` |
+| ✅ | Both edge functions ACTIVE (`clean-checklist`, `grant-pro`); 97/97 tests | — |
+
+**Test flow (works now):** Library tab → sign in via email OTP → shows "✓ Free · email" → click **Upgrade to Pro** → instantly "★ Pro" → Organize + smart merge unlocked. Same UX a paying customer gets; Stripe checkout later just replaces the button's direct call.
+
+---
+
+## Completed 2026-05-19 (bug-fix session)
 
 | # | What | Files changed |
 |---|------|--------------|
