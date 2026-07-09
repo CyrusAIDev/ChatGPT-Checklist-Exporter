@@ -118,9 +118,9 @@ RULES:
 - Assign every item to exactly one group from the list above.
 - Use the group names EXACTLY as shown — no variations, no new groups.
 - If an item could fit multiple groups, pick the best match; if truly unsure, use the last group.
-- Combine duplicate or near-identical items: list all their IDs in sourceIds, write one clean text.
+- Combine duplicate or near-identical items: list all their IDs in sourceIds, and copy the text of the FIRST item exactly.
 - Every input ID must appear in exactly one item's sourceIds — no omissions, no duplicates.
-- Keep item text concise and actionable; preserve meaning exactly.
+- Copy each item's text EXACTLY as provided — do NOT rewrite, rephrase, shorten, or correct it. The text is used to match items across plan revisions; any change breaks matching.
 ${sharedQuoteRule}
 
 Return ONLY valid JSON (no markdown, no code fences, no commentary):
@@ -142,9 +142,9 @@ ${JSON.stringify(items)}`
 RULES:
 - Group related items under a short, clear group name (1–3 words). Aim for 2–5 top-level groups.
 - Optionally add subgroups within a group when 3+ items form a tight cluster. Use at most 2–3 subgroups per group, only when they genuinely clarify structure. Items NOT in a subgroup go directly in the group's "items" array.
-- Combine duplicate or near-identical items: list all their IDs in sourceIds, write one clean merged text.
+- Combine duplicate or near-identical items: list all their IDs in sourceIds, and copy the text of the FIRST item exactly.
 - Every input ID must appear in exactly one item's sourceIds — no IDs may be omitted or duplicated.
-- Rewrite items to be concise and actionable; preserve meaning exactly.
+- Copy each item's text EXACTLY as provided — do NOT rewrite, rephrase, shorten, or correct it. The text is used to match items across plan revisions; any change breaks matching.
 ${sharedQuoteRule}
 
 Return ONLY valid JSON (no markdown, no code fences, no commentary):

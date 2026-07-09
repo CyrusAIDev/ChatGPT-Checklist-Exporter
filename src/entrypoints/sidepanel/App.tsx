@@ -508,6 +508,30 @@ function App() {
         conversationLabel: fresh.conversationTitle ?? result.record.conversationLabel,
         sourceStructure,
       }
+      let effectiveSummary = result.summary
+
+      // Partial-reply guard: when asked to "add one item", ChatGPT often
+      // replies with only the addition instead of the full plan. Merging that
+      // verbatim archives everything else. If the merge archived more than it
+      // matched AND the reply is much shorter than the current list, treat the
+      // reply as additive: restore the items the merge archived.
+      const activeBefore = checklist.items.filter(i => !i.archived).length
+      if (
+        result.summary.archived > result.summary.matched &&
+        parsedItems.length * 2 < activeBefore
+      ) {
+        const wasActiveIds = new Set(
+          checklist.items.filter(i => !i.archived).map(i => i.id),
+        )
+        mergedRecord = {
+          ...mergedRecord,
+          items: mergedRecord.items.map(it =>
+            it.archived && wasActiveIds.has(it.id) ? { ...it, archived: false } : it,
+          ),
+        }
+        effectiveSummary = { ...result.summary, archived: 0 }
+        console.log('[Merge Debug] partial-reply guard triggered — restored', result.summary.archived, 'items')
+      }
 
       // ── DEBUG ─────────────────────────────────────────────────────────────
       console.log('[Merge Debug] after mergeChecklist — groups:', JSON.stringify(mergedRecord.groups ?? null))
@@ -587,7 +611,7 @@ function App() {
       await setChecklist(mergedRecord)
       syncAfterSave(mergedRecord)
       setChecklistState(mergedRecord)
-      setMergeSummary(result.summary)
+      setMergeSummary(effectiveSummary)
       setPageState(fresh)
       refreshLibrary()
     } catch (e) {
@@ -785,7 +809,6 @@ function App() {
     const { groups, itemUpdates } = await fetchOrganizeResult(activeItemsSnap)
     const newGroupIds = new Set(groups.map(g => g.id))
     const archiveSet = new Set(itemUpdates.flatMap(u => u.mergeIds))
-    const textMap = new Map(itemUpdates.map(u => [u.keepId, u.text]))
     const groupIdMap = new Map(itemUpdates.map(u => [u.keepId, u.groupId]))
     const orderMap = new Map(itemUpdates.map(u => [u.keepId, u.order]))
     const nextItems = base.items.map(item => {
@@ -797,8 +820,9 @@ function App() {
         ? newGroupId
         : (item.groupId && newGroupIds.has(item.groupId) ? item.groupId : undefined)
       return {
-        ...item, // preserves checked, archived — only text/groupId/order change
-        text: textMap.get(item.id) ?? item.text,
+        ...item, // preserves checked, archived, and TEXT — only groupId/order change.
+        // Text must never be rewritten by the AI: merge matches items by text,
+        // so any rewrite breaks matching on the next merge and wrecks groups.
         groupId: resolvedGroupId,
         order: orderMap.get(item.id) ?? item.order,
         archived: item.archived || archiveSet.has(item.id),
