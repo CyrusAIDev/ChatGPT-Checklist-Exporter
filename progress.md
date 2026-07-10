@@ -14,6 +14,15 @@ Launch readiness      ████████████████░░░�
 
 ---
 
+## Completed 2026-07-09 (THE root cause — storage was stripping groups)
+
+| # | What | Where |
+|---|------|-------|
+| ✅ | **Groups vanished on every storage read** — `validateChecklistRecord` (protected `src/lib/storage/`) rebuilds records field-by-field and predates the groups feature, so every reload/tab-switch/post-merge refresh silently deleted groups. This caused the flattening AND made merges start from groupless records (smart-place never saw existing groups) | `checklist-with-groups.ts` (new wrapper, storage untouched) |
+| ⚠️ | Proper fix belongs in `storage-guards.ts` (add groups passthrough) but that file is never-touch — wrapper is complete and safe; revisit if the rule is ever lifted | — |
+
+---
+
 ## Completed 2026-07-09 (merge root-cause fix)
 
 | # | What | Where |
