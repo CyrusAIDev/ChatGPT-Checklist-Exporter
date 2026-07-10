@@ -9,7 +9,8 @@ import type {
   OpenChatUrlInNewTabResponse,
   OpenChatgptHomeResponse,
 } from '../../types/messages'
-import { getChecklist, setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
+import { setChecklist, deleteChecklist, listAllChecklists } from '../../lib/storage/checklist-repo'
+import { getChecklistWithGroups } from '../../lib/checklist-with-groups'
 import { supabase } from '../../lib/supabase/client'
 import { syncRecord, deleteRecord, pullAndMergeAll } from '../../lib/supabase/sync'
 import { fetchProfile, grantPro } from '../../lib/supabase/profiles'
@@ -312,7 +313,7 @@ function App() {
     if (pageState === 'loading') return
     if (pageState && pageState !== 'loading' && pageState.supported && pageState.conversationId) {
       setError(null)
-      getChecklist(pageState.conversationId).then(setChecklistState)
+      getChecklistWithGroups(pageState.conversationId).then(setChecklistState)
     } else {
       setChecklistState(null)
     }
@@ -328,7 +329,7 @@ function App() {
       setLibraryDetailRecord(null)
       return
     }
-    getChecklist(libraryDetailId).then((r) => {
+    getChecklistWithGroups(libraryDetailId).then((r) => {
       if (r) {
         setLibraryDetailRecord(r)
       } else {
